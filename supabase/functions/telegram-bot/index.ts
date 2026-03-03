@@ -157,11 +157,11 @@ serve(async (req) => {
         `/balance — Balansni ko'rish\n` +
         `/buy — Kredit sotib olish\n` +
         `/help — Yordam\n\n` +
-        `Mahsulot rasmini yuboring — biz uni professional qilib qayta ishlaymiz! 🚀`,
+        `📱 Rasm yaratish uchun quyidagi tugmani bosing! 🚀`,
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: "📱 Ilovani ochish", web_app: { url: WEB_APP_URL } }
+              { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
             ]]
           }
         }
@@ -238,16 +238,24 @@ serve(async (req) => {
     if (text === "/help" || text === "/yordam") {
       await sendMessage(botToken, chatId,
         `📋 <b>Buyruqlar:</b>\n\n` +
-        `📸 Rasm yuboring — professional qayta ishlash\n` +
+        `📱 Web App — professional rasm yaratish\n` +
         `/balance — Kredit qoldig'i\n` +
         `/buy — Kredit sotib olish\n` +
         `/cancel — Sotib olishni bekor qilish\n` +
         `/help — Yordam\n\n` +
         `🎨 <b>Qanday ishlaydi?</b>\n` +
-        `1. Mahsulot rasmini yuboring\n` +
-        `2. AI uni professional studio sifatida qayta ishlaydi\n` +
-        `3. Tayyor rasmni yuklab oling!\n\n` +
-        `💡 Har bir rasm uchun 1 kredit sarflanadi.`
+        `1. "Rasm yaratish" tugmasini bosing\n` +
+        `2. Web App ichida rasm yuklang\n` +
+        `3. AI professional studio sifatida qayta ishlaydi\n` +
+        `4. Tayyor rasmni yuklab oling!\n\n` +
+        `💡 Har bir rasm uchun 1 kredit sarflanadi.`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
+            ]]
+          }
+        }
       );
       return new Response("OK");
     }
@@ -315,126 +323,31 @@ serve(async (req) => {
         return new Response("OK");
       }
 
-      // Normal photo — process as product image
-      if (profile.credits_remaining <= 0) {
-        await sendMessage(botToken, chatId,
-          `❌ Kredit tugadi!\n\n💰 Balans: <b>0</b>\n\n/buy buyrug'i bilan kredit sotib oling.`
-        );
-        return new Response("OK");
-      }
-
-      await sendMessage(botToken, chatId, "⏳ Rasm qayta ishlanmoqda... 30-60 soniya kuting.");
-
-      // Get file from Telegram
-      const photoFile = message.photo[message.photo.length - 1];
-      const fileRes = await fetch(`${TELEGRAM_API}${botToken}/getFile?file_id=${photoFile.file_id}`);
-      const fileData = await fileRes.json();
-      const filePath = fileData.result?.file_path;
-
-      if (!filePath) {
-        await sendMessage(botToken, chatId, "❌ Rasmni olishda xatolik.");
-        return new Response("OK");
-      }
-
-      const imageRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
-      const imageBytes = new Uint8Array(await imageRes.arrayBuffer());
-
-      // Upload to storage
-      const storagePath = `${profile.id}/originals/${crypto.randomUUID()}.jpg`;
-      const { error: uploadErr } = await supabase.storage
-        .from("product-images")
-        .upload(storagePath, imageBytes, { contentType: "image/jpeg", upsert: true });
-
-      if (uploadErr) {
-        await sendMessage(botToken, chatId, "❌ Rasmni saqlashda xatolik.");
-        return new Response("OK");
-      }
-
-      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(storagePath);
-
-      // Create generation record
-      const genId = crypto.randomUUID();
-      await supabase.from("generations").insert({
-        id: genId,
-        user_id: profile.user_id || null,
-        telegram_id: telegramId,
-        original_url: urlData.publicUrl,
-        marketplace: "Telegram Bot / Studio",
-        style_preset: "studio",
-        enhancements: { model: "without-model", scene: "studio", language: "uz", source: "telegram" },
-        status: "processing",
-      });
-
-      // Call AI
-      if (!lovableApiKey) {
-        await sendMessage(botToken, chatId, "❌ AI tizimi sozlanmagan.");
-        return new Response("OK");
-      }
-
-      const prompt = `Elite e-commerce product photographer. Create ONE scroll-stopping product image.
-OUTPUT: 1080×1440px (3:4), high-res, no artifacts.
-PRODUCT ANALYSIS: Study uploaded image — category, dimensions, features, colors, materials.
-SCENE: Studio: seamless gradient backdrop, 3-point lighting (45° key, soft fill, rim light), reflective surface below.
-MODEL: Product-only. Dynamic angles, artistic shadows, complementary props.
-SCALE: Product at CORRECT real-world size. 25-40% of frame. Use props as scale anchors.
-LIGHTING: 3-point professional. Cinematic color grading. True colors. Subtle vignette.
-QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
-
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: urlData.publicUrl } }] }],
-          modalities: ["image", "text"],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        await supabase.from("generations").update({ status: "failed" }).eq("id", genId);
-        const status = aiResponse.status;
-        if (status === 429) {
-          await sendMessage(botToken, chatId, "⏳ AI band. 1-2 daqiqadan keyin qayta yuboring.");
-        } else {
-          await sendMessage(botToken, chatId, "❌ AI xatolik. Keyinroq urinib ko'ring.");
+      // Normal photo — redirect to Web App for generation
+      await sendMessage(botToken, chatId,
+        `📱 Rasm yaratish uchun <b>Web App</b>ni oching!\n\n` +
+        `💡 Quyidagi tugmani bosing va rasmni Web App ichida yuklang.`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
+            ]]
+          }
         }
-        return new Response("OK");
-      }
-
-      const aiData = await aiResponse.json();
-      const resultBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-      if (!resultBase64) {
-        await supabase.from("generations").update({ status: "failed" }).eq("id", genId);
-        await sendMessage(botToken, chatId, "❌ AI rasm qaytarmadi. Qayta urinib ko'ring.");
-        return new Response("OK");
-      }
-
-      // Upload result
-      const base64Clean = resultBase64.replace(/^data:image\/\w+;base64,/, "");
-      const resultBytes = Uint8Array.from(atob(base64Clean), (c) => c.charCodeAt(0));
-      const resultPath = `${profile.id}/results/${genId}.png`;
-
-      await supabase.storage.from("product-images").upload(resultPath, resultBytes, { contentType: "image/png", upsert: true });
-      const { data: resultUrlData } = supabase.storage.from("product-images").getPublicUrl(resultPath);
-
-      // Update generation & credits
-      await supabase.from("generations").update({ result_url: resultUrlData.publicUrl, status: "completed" }).eq("id", genId);
-      await supabase.from("profiles").update({ credits_remaining: profile.credits_remaining - 1 }).eq("id", profile.id);
-
-      await sendPhoto(botToken, chatId, resultUrlData.publicUrl,
-        `✅ <b>Tayyor!</b>\n\n💰 Qolgan kreditlar: <b>${profile.credits_remaining - 1}</b>\n\n` +
-        (profile.credits_remaining - 1 <= 0 ? `⚠️ Oxirgi kredit edi! /buy bilan yangi sotib oling.` : `📸 Yana rasm yuboring!`)
       );
       return new Response("OK");
     }
 
     // Unknown
     await sendMessage(botToken, chatId,
-      "🤔 Tushunmadim.\n\n📸 Mahsulot rasmini yuboring yoki /help buyrug'ini yozing."
+      "🤔 Tushunmadim.\n\n📱 Rasm yaratish uchun quyidagi tugmani bosing yoki /help buyrug'ini yozing.",
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
+          ]]
+        }
+      }
     );
     return new Response("OK");
 
