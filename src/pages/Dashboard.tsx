@@ -64,7 +64,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [telegramUser, setTelegramUser] = useState<{ id: number; first_name?: string } | null>(null);
   const navigate = useNavigate();
-
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
