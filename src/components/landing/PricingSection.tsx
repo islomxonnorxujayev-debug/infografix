@@ -136,14 +136,14 @@ const PricingSection = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 max-w-7xl mx-auto">
           {tiers.map((tier, i) => (
             <motion.div
               key={tier.name}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
+              transition={{ delay: i * 0.06 }}
               className={`relative p-5 sm:p-6 rounded-2xl border transition-all ${
                 tier.highlighted
                   ? "bg-foreground text-background border-foreground shadow-glow scale-[1.02]"
@@ -151,11 +151,11 @@ const PricingSection = () => {
               }`}
             >
               {tier.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full gradient-primary text-primary-foreground text-xs font-semibold">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full gradient-primary text-primary-foreground text-xs font-semibold whitespace-nowrap">
                   Eng ommabop
                 </div>
               )}
-              <div className="mb-5 sm:mb-6">
+              <div className="mb-4">
                 <h3 className={`font-display text-lg font-semibold ${tier.highlighted ? "text-background" : "text-foreground"}`}>
                   {tier.name}
                 </h3>
@@ -163,15 +163,21 @@ const PricingSection = () => {
                   {tier.description}
                 </p>
               </div>
-              <div className="mb-5 sm:mb-6">
-                <span className={`font-display text-3xl sm:text-4xl font-bold ${tier.highlighted ? "text-background" : "text-foreground"}`}>
+              <div className="mb-1">
+                <span className={`font-display text-2xl sm:text-3xl font-bold ${tier.highlighted ? "text-background" : "text-foreground"}`}>
                   {tier.price}
                 </span>
                 <span className={`text-sm ${tier.highlighted ? "text-background/60" : "text-muted-foreground"}`}>
                   {tier.period}
                 </span>
               </div>
-              <ul className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
+              {tier.perImage && (
+                <p className={`text-xs mb-4 ${tier.highlighted ? "text-accent" : "text-primary"}`}>
+                  ≈ {tier.perImage}
+                </p>
+              )}
+              {!tier.perImage && <div className="mb-4" />}
+              <ul className="space-y-2 mb-6">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
                     <Check className={`h-4 w-4 mt-0.5 shrink-0 ${tier.highlighted ? "text-accent" : "text-primary"}`} />
@@ -182,6 +188,7 @@ const PricingSection = () => {
               <Button
                 className={`w-full ${tier.highlighted ? "bg-background text-foreground hover:bg-background/90" : "gradient-primary border-0"}`}
                 variant={tier.highlighted ? "secondary" : "default"}
+                size="sm"
                 asChild
               >
                 <Link to="/signup">{tier.cta}</Link>
@@ -191,7 +198,7 @@ const PricingSection = () => {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-8 max-w-lg mx-auto">
-          💡 Bir rasm generatsiya qilish taxminan $0.03-0.05 turadi. Starter rejada har bir rasm atigi ~$0.09, Pro rejada esa cheksiz!
+          💡 Ko'proq sotib olsangiz — har bir rasm arzonroq! 100 ta paketda 50% tejaysiz.
         </p>
       </div>
     </section>
