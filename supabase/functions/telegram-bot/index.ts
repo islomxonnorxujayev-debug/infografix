@@ -157,11 +157,11 @@ serve(async (req) => {
         `/balance — Balansni ko'rish\n` +
         `/buy — Kredit sotib olish\n` +
         `/help — Yordam\n\n` +
-        `Mahsulot rasmini yuboring — biz uni professional qilib qayta ishlaymiz! 🚀`,
+        `📱 Rasm yaratish uchun quyidagi tugmani bosing! 🚀`,
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: "📱 Ilovani ochish", web_app: { url: WEB_APP_URL } }
+              { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
             ]]
           }
         }
