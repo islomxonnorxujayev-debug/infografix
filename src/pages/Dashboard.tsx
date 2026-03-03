@@ -2,36 +2,25 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Plus, ImageIcon, CreditCard, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
   const [credits, setCredits] = useState<number | null>(null);
   const [generations, setGenerations] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
-
-    // Fetch profile credits
-    supabase
-      .from("profiles")
-      .select("credits_remaining")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) setCredits(data.credits_remaining);
-      });
-
-    // Fetch generations
-    supabase
-      .from("generations")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setGenerations(data);
-      });
+    supabase.from("profiles").select("credits_remaining").eq("user_id", user.id).single().then(({ data }) => {
+      if (data) setCredits(data.credits_remaining);
+    });
+    supabase.from("generations").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setGenerations(data);
+    });
   }, [user]);
 
   return (
@@ -45,13 +34,14 @@ const Dashboard = () => {
             <span className="font-display text-lg font-bold text-foreground">MarketModel AI</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
+            <LanguageSwitcher />
             <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
               <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {credits !== null ? `${credits}` : "..."}
             </div>
             <Button variant="ghost" size="sm" onClick={signOut} className="text-xs sm:text-sm px-2 sm:px-3">
               <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-              <span className="hidden sm:inline">Log out</span>
+              <span className="hidden sm:inline">{t("nav.logout")}</span>
             </Button>
           </div>
         </div>
@@ -60,13 +50,13 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-6 sm:py-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">Create and manage your product images</p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">{t("dash.title")}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">{t("dash.subtitle")}</p>
           </div>
           <Button className="gradient-primary border-0 w-full sm:w-auto" asChild>
             <Link to="/generate">
               <Plus className="mr-2 h-4 w-4" />
-              Create New Image
+              {t("dash.createNew")}
             </Link>
           </Button>
         </div>
@@ -76,12 +66,12 @@ const Dashboard = () => {
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="font-display text-lg font-semibold text-foreground mb-1">No images yet</h3>
-            <p className="text-muted-foreground text-sm mb-6">Create your first professional product image</p>
+            <h3 className="font-display text-lg font-semibold text-foreground mb-1">{t("dash.noImages")}</h3>
+            <p className="text-muted-foreground text-sm mb-6">{t("dash.noImagesDesc")}</p>
             <Button className="gradient-primary border-0" asChild>
               <Link to="/generate">
                 <Plus className="mr-2 h-4 w-4" />
-                Create New Image
+                {t("dash.createNew")}
               </Link>
             </Button>
           </div>
