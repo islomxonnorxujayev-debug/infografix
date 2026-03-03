@@ -150,6 +150,7 @@ const Generate = () => {
     setGenerationId(null);
     setSelectedModel(null);
     setSelectedScene(null);
+    setSelectedLanguage("uz");
     setCurrentStep(0);
   };
 
