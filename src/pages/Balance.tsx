@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const CARD_NUMBER = "9860 1606 0533 5993";
+const CARD_HOLDER = "Islomxon Norxujayev";
 
 const packages = [
   { name: "1 ta rasm", credits: 1, price: "4 999", amount: "4999" },
@@ -106,7 +107,7 @@ const Balance = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto flex items-center justify-between h-14 px-4">
-          <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm">Dashboard</span>
           </Link>
@@ -173,9 +174,12 @@ const Balance = () => {
                 onClick={copyCard}
                 className="flex items-center gap-3 w-full p-3 rounded-lg bg-muted border border-border hover:bg-muted/80 transition-colors"
               >
-                <span className="font-mono text-lg font-bold text-foreground tracking-wider flex-1 text-left">
-                  {CARD_NUMBER}
-                </span>
+                <div className="flex-1 text-left">
+                  <span className="font-mono text-lg font-bold text-foreground tracking-wider block">
+                    {CARD_NUMBER}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{CARD_HOLDER}</span>
+                </div>
                 {copied ? (
                   <Check className="h-5 w-5 text-green-500 shrink-0" />
                 ) : (

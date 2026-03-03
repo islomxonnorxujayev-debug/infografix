@@ -78,7 +78,7 @@ const Admin = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/login");
+    navigate("/");
   };
 
   const approvePayment = async (req: PaymentRequest) => {
