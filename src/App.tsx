@@ -9,6 +9,8 @@ import AdminRoute from "@/components/AdminRoute";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import Generate from "./pages/Generate";
+import Balance from "./pages/Balance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
