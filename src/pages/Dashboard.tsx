@@ -59,7 +59,18 @@ const Dashboard = () => {
   const [tgProfile, setTgProfile] = useState<any>(null);
   const [tgGenerations, setTgGenerations] = useState<Generation[]>([]);
   const [tgPayments, setTgPayments] = useState<Payment[]>([]);
-  const [tgTab, setTgTab] = useState<"home" | "history" | "payments">("home");
+  const [tgTab, setTgTab] = useState<"generate" | "history" | "payments">("generate");
+  
+  // Generate state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const previewUrl = useMemo(() => {
+    if (uploadedFile) return URL.createObjectURL(uploadedFile);
+    return null;
+  }, [uploadedFile]);
 
   const navigate = useNavigate();
 
