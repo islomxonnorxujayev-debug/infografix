@@ -260,7 +260,7 @@ const Generate = () => {
                   <div className="text-center mt-8">
                     <Button
                       size="lg"
-                      className="gradient-primary border-0 px-10"
+                      className="gradient-primary border-0 px-6 sm:px-10 text-sm sm:text-base"
                       onClick={handleProcess}
                       disabled={processing}
                     >
