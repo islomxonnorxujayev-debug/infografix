@@ -69,52 +69,67 @@ serve(async (req) => {
       });
     }
 
-    // Build creative marketplace promotional image prompt
-    const prompt = `You are a world-class e-commerce creative designer, product photographer, and marketing expert. Transform this product image into a STUNNING, eye-catching marketplace promotional image.
+    // Build dynamic, category-aware marketplace promotional image prompt
+    const prompt = `You are the #1 e-commerce creative designer in the world. Your images consistently generate 3x more clicks and sales than competitors. 
 
-CRITICAL — THIS IS NOT A SIMPLE BACKGROUND REMOVAL. Create a FULL PROMOTIONAL DESIGN like top-selling marketplace listings:
+TASK: Analyze this product image. Identify its category (fashion, electronics, home, beauty, sports, food, toys, etc.) and create a PREMIUM promotional marketplace image that will MAXIMIZE sales on ${marketplace || "e-commerce"}.
 
-1. CREATIVE BACKGROUND:
-   - Create a vibrant, colorful gradient or themed background that matches the product category and mood
-   - Use bold colors, gradients, abstract waves, light effects, glow, and decorative elements
-   - Add visual flair: geometric patterns, bokeh effects, leaves, sparkles, stars, or category-relevant decorations
-   - The background should be visually striking and attention-grabbing, NOT plain white
-   - Use color psychology: energetic colors for sports, warm tones for home, cool tones for tech
+ADAPT THE ENTIRE DESIGN BASED ON PRODUCT CATEGORY:
 
-2. PRODUCT PRESENTATION:
-   - Extract the product cleanly from its original background
-   - Place it prominently — large, clear, sharp, and well-lit with studio lighting
-   - Add highlights, reflections, subtle glow, and depth effects
-   - The product must remain 100% photorealistic and accurate in color, shape, and detail
+FOR FASHION/CLOTHING/ACCESSORIES:
+- Feature an attractive model wearing or holding the product naturally
+- Use a lifestyle setting: urban street, studio, or trendy interior
+- Warm, fashionable color palette with soft lighting
+- Add style-related text badges: material, size range, season
 
-3. HUMAN MODEL / LIFESTYLE ELEMENT:
-   - IMPORTANT: Add a realistic human model or person USING the product in context
-   - Show the product being worn, held, used, or demonstrated by a real-looking person
-   - The model should look natural, attractive, and relevant to the target audience
-   - Position the model on one side with the product enlarged on the other side
-   - If a model doesn't fit (e.g., small electronics), show a lifestyle scene: hands holding product, product on a desk, product in use
-   - The model/lifestyle element makes the listing MORE appealing and shows scale/usage
+FOR ELECTRONICS/GADGETS/TECH:
+- Sleek, futuristic dark or gradient background with neon accents and tech-feel lighting
+- Show the device from multiple angles or in an exploded view
+- Add specification callouts with clean icons
+- Hands or desk scene showing the product in use
 
-4. TEXT & BRANDING:
-   - Add the product name or category as large, bold, stylish text with modern typography
-   - Use text effects: shadows, outlines, gradient fills, 3D look, or neon glow
-   - Add 2-3 short feature callouts or benefits as smaller text badges
-   - Add trust badges like "⭐ Bestseller", "🔥 Top", "✅ Sifatli" where appropriate
-   - Text language should match the marketplace context (${marketplace || "e-commerce"})
+FOR HOME/KITCHEN/FURNITURE:
+- Cozy, warm interior scene as background
+- Product placed in a realistic room setting
+- Earthy, warm color tones with natural light feel
+- Lifestyle composition showing comfort and quality
 
-5. COMPOSITION for ${marketplace || "e-commerce"} (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
-   - Create a balanced, professional layout: product + model + text + decorative elements
-   - Use a split or layered composition: model on one side, product closeup on other
-   - Design should look like a PAID professional marketplace listing card
-   - Must instantly grab attention in a feed of competing products
+FOR BEAUTY/COSMETICS/HEALTH:
+- Elegant, luxurious gradient background (rose gold, pearl, soft pink, lavender)
+- Close-up beauty shot with model applying or holding the product
+- Dewy, fresh, premium feel with sparkle effects
+- Ingredient or benefit callouts
 
-6. STYLE REFERENCE:
-   - Top-selling Wildberries, Ozon, Uzum Market, Amazon product cards
-   - Vibrant, commercial, scroll-stopping design
-   - Think: professional infographic + lifestyle photo + promotional banner combined
-   - The kind of image that gets the MOST clicks and sales
+FOR SPORTS/FITNESS:
+- Dynamic, energetic background with motion blur or action effects
+- Athletic model using the product mid-workout
+- Bold, energetic colors (electric blue, neon green, fiery orange)
+- Performance stats or feature badges
 
-OUTPUT: A complete, ready-to-upload promotional product image for ${marketplace || "any marketplace"} with: creative background, product closeup, human model/lifestyle element, stylish text, and professional composition. This must look like a premium marketplace listing that a professional designer created.`;
+FOR KIDS/TOYS:
+- Bright, playful, colorful background with fun patterns
+- Happy child or family interaction with the product
+- Cartoon-style decorative elements, stars, bubbles
+- Age range and safety badges
+
+FOR ALL CATEGORIES — MANDATORY RULES:
+
+1. BACKGROUND: Category-specific creative background. EACH image must have a UNIQUE color scheme and style. Vary between: gradient backgrounds, lifestyle scenes, abstract geometric, bokeh, textured surfaces. Pick what fits the product best.
+
+2. PRODUCT: Extract cleanly. Show it large, sharp, well-lit. Add professional studio lighting with highlights and depth. Product accuracy is paramount — exact colors, textures, proportions.
+
+3. HUMAN ELEMENT: Include a person using, wearing, holding, or demonstrating the product. Position them naturally in the composition. If a full model is inappropriate, show hands interacting with the product, or the product in a lifestyle context.
+
+4. TYPOGRAPHY: Add the product name/category as bold, modern text. Use ${marketplace === "Uzum Market" || marketplace === "Wildberries" || marketplace === "Ozon" ? "Russian" : "English"} language. Include 2-3 benefit badges. Make text readable and professionally styled with shadows or outlines for contrast.
+
+5. COMPOSITION (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
+   - Layered layout: background → lifestyle/model → product closeup → text overlay
+   - Product fills 40-60% of frame, model/lifestyle 30-40%, text 10-20%
+   - Professional balance that draws the eye to the product first
+
+6. SALES PSYCHOLOGY: The image must trigger an immediate desire to buy. Use premium feel, social proof elements (rating stars, bestseller badges), and urgency cues. Make the viewer think: "I need this."
+
+FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${marketplace || "any marketplace"} that looks like it was designed by a premium agency. Include creative themed background, human model/lifestyle element, product showcase, and sales-driving text. Every image you create must look DIFFERENT from the last — vary colors, layouts, and styles based on the product.`;
 
     console.log("Calling AI for generation:", generationId, "marketplace:", marketplace);
 

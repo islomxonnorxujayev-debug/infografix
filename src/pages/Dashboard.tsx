@@ -44,26 +44,26 @@ const Dashboard = () => {
             </div>
             <span className="font-display text-lg font-bold text-foreground">MarketModel AI</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <CreditCard className="h-4 w-4" />
-              {credits !== null ? `${credits} credits` : "..."}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
+              <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              {credits !== null ? `${credits}` : "..."}
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-1" />
-              Log out
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-xs sm:text-sm px-2 sm:px-3">
+              <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-8">
+      <div className="container mx-auto px-4 py-6 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Create and manage your product images</p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">Create and manage your product images</p>
           </div>
-          <Button className="gradient-primary border-0" asChild>
+          <Button className="gradient-primary border-0 w-full sm:w-auto" asChild>
             <Link to="/generate">
               <Plus className="mr-2 h-4 w-4" />
               Create New Image
