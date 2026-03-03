@@ -177,7 +177,7 @@ const Dashboard = () => {
 
       <div className="shrink-0 flex border-b border-border bg-card">
         {[
-          { id: "home" as const, label: "Bosh sahifa", icon: Sparkles },
+          { id: "generate" as const, label: "Yaratish", icon: Camera },
           { id: "history" as const, label: "Tarix", icon: ImageIcon },
           { id: "payments" as const, label: "To'lovlar", icon: Wallet },
         ].map(t => (
@@ -195,39 +195,23 @@ const Dashboard = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {tgTab === "home" && (
-          <div className="p-4 space-y-4">
-            <div className="rounded-xl bg-card border border-border p-4 text-center">
-              <p className="text-sm text-muted-foreground">Salom,</p>
-              <p className="font-display font-bold text-foreground text-lg">
-                {tgProfile?.first_name || telegramUser?.first_name || "Foydalanuvchi"} 👋
-              </p>
-              <div className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/10">
-                <CreditCard className="h-4 w-4 text-primary" />
-                <span className="text-primary font-bold text-lg">{tgProfile?.credits_remaining ?? 0}</span>
-                <span className="text-primary/70 text-sm">kredit</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-card border border-border p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{tgGenerations.length}</p>
-                <p className="text-xs text-muted-foreground">Jami rasmlar</p>
-              </div>
-              <div className="rounded-xl bg-card border border-border p-3 text-center">
-                <p className="text-xl font-bold text-foreground">
-                  {tgGenerations.filter(g => g.status === "completed").length}
-                </p>
-                <p className="text-xs text-muted-foreground">Tayyor</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-card border border-border p-4">
-              <p className="text-sm font-semibold text-foreground mb-3">Qanday ishlaydi?</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>📸 Botga mahsulot rasmini yuboring</p>
-                <p>🤖 AI professional darajada qayta ishlaydi</p>
-                <p>✨ Tayyor rasmni oling — 1 kredit</p>
-              </div>
-            </div>
+        {tgTab === "generate" && (
+          <TelegramGenerateTab
+            telegramId={telegramUser!.id}
+            credits={tgProfile?.credits_remaining ?? 0}
+            firstName={tgProfile?.first_name || telegramUser?.first_name}
+            uploadedFile={uploadedFile}
+            setUploadedFile={setUploadedFile}
+            processing={processing}
+            setProcessing={setProcessing}
+            resultUrl={resultUrl}
+            setResultUrl={setResultUrl}
+            fileInputRef={fileInputRef}
+            previewUrl={previewUrl}
+            onCreditsUpdate={(newCredits: number) => setTgProfile((p: any) => p ? { ...p, credits_remaining: newCredits } : p)}
+            onGenerationDone={(gen: Generation) => setTgGenerations(prev => [gen, ...prev])}
+          />
+        )}
           </div>
         )}
 
