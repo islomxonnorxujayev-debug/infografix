@@ -1,38 +1,30 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, Languages } from "lucide-react";
+import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { toast } from "sonner";
 
-const steps = [
-  { label: "Yuklash", icon: Upload },
-  { label: "Sozlash", icon: Settings },
-  { label: "Natija", icon: Download },
-];
-
 const modelOptions = [
-  { id: "with-model", label: "Modelli", description: "Inson model bilan", icon: User },
-  { id: "without-model", label: "Modelsiz", description: "Faqat mahsulot", icon: Package },
+  { id: "with-model", labelKey: "gen.withModel", descKey: "gen.withModelDesc", icon: User },
+  { id: "without-model", labelKey: "gen.withoutModel", descKey: "gen.withoutModelDesc", icon: Package },
 ];
 
 const sceneOptions = [
-  { id: "nature", label: "Tabiat", description: "Tabiat fonida", icon: TreePine },
-  { id: "lifestyle", label: "Lifestyle", description: "Hayotiy muhit", icon: Home },
-  { id: "studio", label: "Studia", description: "Professional studia", icon: Camera },
-  { id: "minimalist", label: "Minimalist", description: "Oddiy va toza", icon: LayoutGrid },
-  { id: "infographic", label: "Infografika", description: "Ma'lumotli dizayn", icon: BarChart3 },
-];
-
-const languageOptions = [
-  { id: "uz", label: "O'zbekcha", flag: "🇺🇿" },
-  { id: "ru", label: "Русский", flag: "🇷🇺" },
+  { id: "nature", labelKey: "gen.nature", descKey: "gen.natureDesc", icon: TreePine },
+  { id: "lifestyle", labelKey: "gen.lifestyle", descKey: "gen.lifestyleDesc", icon: Home },
+  { id: "studio", labelKey: "gen.studio", descKey: "gen.studioDesc", icon: Camera },
+  { id: "minimalist", labelKey: "gen.minimalist", descKey: "gen.minimalistDesc", icon: LayoutGrid },
+  { id: "infographic", labelKey: "gen.infographic", descKey: "gen.infographicDesc", icon: BarChart3 },
 ];
 
 const Generate = () => {
   const { user } = useAuth();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -41,7 +33,12 @@ const Generate = () => {
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("uz");
+
+  const steps = [
+    { label: t("gen.step.upload"), icon: Upload },
+    { label: t("gen.step.settings"), icon: Settings },
+    { label: t("gen.step.result"), icon: Download },
+  ];
 
   const previewUrl = useMemo(() => {
     if (uploadedFile) return URL.createObjectURL(uploadedFile);
@@ -52,7 +49,7 @@ const Generate = () => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Fayl hajmi 5MB dan kichik bo'lishi kerak");
+        toast.error(t("gen.fileTooLarge"));
         return;
       }
       setUploadedFile(file);
@@ -72,23 +69,20 @@ const Generate = () => {
         .from("product-images")
         .upload(filePath, uploadedFile, { cacheControl: "3600", upsert: true });
 
-      if (uploadError) throw new Error(`Yuklashda xatolik: ${uploadError.message}`);
+      if (uploadError) throw new Error(`${t("gen.uploadError")}: ${uploadError.message}`);
 
       const { data: urlData } = supabase.storage
         .from("product-images")
         .getPublicUrl(filePath);
-
-      const modelLabel = modelOptions.find(m => m.id === selectedModel)?.label || "";
-      const sceneLabel = sceneOptions.find(s => s.id === selectedScene)?.label || "";
 
       const { data: genData, error: genError } = await supabase
         .from("generations")
         .insert({
           user_id: user.id,
           original_url: urlData.publicUrl,
-          marketplace: `${modelLabel} / ${sceneLabel}`,
+          marketplace: `${t(modelOptions.find(m => m.id === selectedModel)?.labelKey || "")} / ${t(sceneOptions.find(s => s.id === selectedScene)?.labelKey || "")}`,
           style_preset: selectedScene,
-          enhancements: { model: selectedModel, scene: selectedScene },
+          enhancements: { model: selectedModel, scene: selectedScene, language: lang },
           status: "processing",
         })
         .select("id")
@@ -103,7 +97,7 @@ const Generate = () => {
           modelType: selectedModel,
           sceneType: selectedScene,
           generationId: genData.id,
-          language: selectedLanguage,
+          language: lang,
         },
       });
 
@@ -115,10 +109,10 @@ const Generate = () => {
       }
 
       setResultUrl(fnData.resultUrl);
-      toast.success("Rasm muvaffaqiyatli tayyorlandi!");
+      toast.success(t("gen.success"));
     } catch (err: any) {
       console.error("Processing error:", err);
-      toast.error(err.message || "Rasmni qayta ishlashda xatolik");
+      toast.error(err.message || t("gen.processError"));
       setCurrentStep(1);
     } finally {
       setProcessing(false);
@@ -138,9 +132,9 @@ const Generate = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success("Rasm yuklandi!");
+      toast.success(t("gen.downloaded"));
     } catch {
-      toast.error("Yuklashda xatolik");
+      toast.error(t("gen.downloadError"));
     }
   };
 
@@ -150,11 +144,12 @@ const Generate = () => {
     setGenerationId(null);
     setSelectedModel(null);
     setSelectedScene(null);
-    setSelectedLanguage("uz");
     setCurrentStep(0);
   };
 
   const canProceedStep1 = selectedModel !== null && selectedScene !== null;
+
+  const selectedSceneLabel = sceneOptions.find(s => s.id === selectedScene)?.labelKey;
 
   return (
     <div className="min-h-screen bg-background">
@@ -162,13 +157,13 @@ const Generate = () => {
         <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4">
           <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm hidden sm:inline">Ortga</span>
+            <span className="text-sm hidden sm:inline">{t("gen.back")}</span>
           </Link>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <span className="font-display font-semibold text-foreground text-sm sm:text-base">Yangi rasm</span>
+            <span className="font-display font-semibold text-foreground text-sm sm:text-base">{t("gen.newImage")}</span>
           </div>
-          <div className="w-10" />
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -176,7 +171,7 @@ const Generate = () => {
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6 sm:mb-10">
           {steps.map((step, i) => (
-            <div key={step.label} className="flex items-center gap-1 sm:gap-2">
+            <div key={i} className="flex items-center gap-1 sm:gap-2">
               <div className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                 i === currentStep
                   ? "gradient-primary text-primary-foreground"
@@ -205,8 +200,8 @@ const Generate = () => {
             {/* Step 0: Upload */}
             {currentStep === 0 && (
               <div className="text-center px-2">
-                <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-2">Mahsulot rasmini yuklang</h2>
-                <p className="text-sm text-muted-foreground mb-6">JPG, PNG yoki WEBP — 5MB gacha</p>
+                <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-2">{t("gen.uploadTitle")}</h2>
+                <p className="text-sm text-muted-foreground mb-6">{t("gen.uploadDesc")}</p>
                 <label className="block max-w-sm mx-auto cursor-pointer">
                   <div className="border-2 border-dashed border-border rounded-2xl p-6 sm:p-10 hover:border-primary/40 transition-colors bg-card">
                     {uploadedFile && previewUrl ? (
@@ -218,8 +213,8 @@ const Generate = () => {
                     ) : (
                       <div>
                         <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3" />
-                        <p className="font-medium text-foreground text-sm sm:text-base">Bosing yoki rasmni tashlang</p>
-                        <p className="text-xs text-muted-foreground mt-1">Mahsulot surati</p>
+                        <p className="font-medium text-foreground text-sm sm:text-base">{t("gen.uploadBtn")}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t("gen.uploadLabel")}</p>
                       </div>
                     )}
                   </div>
@@ -231,7 +226,7 @@ const Generate = () => {
                     className="gradient-primary border-0 mt-6 px-8"
                     onClick={() => setCurrentStep(1)}
                   >
-                    Davom etish
+                    {t("gen.continue")}
                     <Settings className="ml-2 h-4 w-4" />
                   </Button>
                 )}
@@ -241,14 +236,12 @@ const Generate = () => {
             {/* Step 1: Options */}
             {currentStep === 1 && (
               <div className="px-2">
-                <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-1 text-center">Sozlamalarni tanlang</h2>
-                <p className="text-sm text-muted-foreground mb-6 sm:mb-8 text-center">
-                  AI tanlangan sozlamalarga qarab premium rasm yaratadi
-                </p>
+                <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-1 text-center">{t("gen.settingsTitle")}</h2>
+                <p className="text-sm text-muted-foreground mb-6 sm:mb-8 text-center">{t("gen.settingsDesc")}</p>
 
                 {/* Model selection */}
                 <div className="mb-6 sm:mb-8">
-                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">👤 Model turi</h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">{t("gen.modelType")}</h3>
                   <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
                     {modelOptions.map((opt) => (
                       <button
@@ -261,8 +254,8 @@ const Generate = () => {
                         }`}
                       >
                         <opt.icon className={`h-6 w-6 mx-auto mb-2 ${selectedModel === opt.id ? "text-primary" : "text-muted-foreground"}`} />
-                        <div className="font-display font-bold text-foreground text-sm">{opt.label}</div>
-                        <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{opt.description}</div>
+                        <div className="font-display font-bold text-foreground text-sm">{t(opt.labelKey)}</div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{t(opt.descKey)}</div>
                       </button>
                     ))}
                   </div>
@@ -270,7 +263,7 @@ const Generate = () => {
 
                 {/* Scene selection */}
                 <div className="mb-6 sm:mb-8">
-                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">🎬 Holat / Fon</h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">{t("gen.scene")}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto">
                     {sceneOptions.map((opt) => (
                       <button
@@ -283,29 +276,8 @@ const Generate = () => {
                         }`}
                       >
                         <opt.icon className={`h-5 w-5 mx-auto mb-1.5 ${selectedScene === opt.id ? "text-primary" : "text-muted-foreground"}`} />
-                        <div className="font-display font-bold text-foreground text-xs sm:text-sm">{opt.label}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Language selection */}
-                <div className="mb-6 sm:mb-8">
-                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">🌐 Matn tili</h3>
-                  <div className="flex gap-3 justify-center max-w-xs mx-auto">
-                    {languageOptions.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setSelectedLanguage(opt.id)}
-                        className={`flex-1 p-3 sm:p-4 rounded-2xl border text-center transition-all ${
-                          selectedLanguage === opt.id
-                            ? "border-primary bg-primary/5 shadow-glow"
-                            : "border-border bg-card hover:border-primary/20"
-                        }`}
-                      >
-                        <span className="text-2xl block mb-1">{opt.flag}</span>
-                        <div className="font-display font-bold text-foreground text-xs sm:text-sm">{opt.label}</div>
+                        <div className="font-display font-bold text-foreground text-xs sm:text-sm">{t(opt.labelKey)}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">{t(opt.descKey)}</div>
                       </button>
                     ))}
                   </div>
@@ -316,7 +288,7 @@ const Generate = () => {
                   <div className="flex justify-center mb-6">
                     <div className="rounded-xl border border-border bg-card p-3 max-w-[160px]">
                       <img src={previewUrl} alt="Your image" className="rounded-lg object-contain max-h-28 mx-auto" />
-                      <p className="text-[10px] text-muted-foreground text-center mt-2">Sizning rasmingiz</p>
+                      <p className="text-[10px] text-muted-foreground text-center mt-2">{t("gen.yourImage")}</p>
                     </div>
                   </div>
                 )}
@@ -330,11 +302,9 @@ const Generate = () => {
                       disabled={processing}
                     >
                       <Sparkles className="mr-2 h-5 w-5" />
-                      AI bilan tayyorlash
+                      {t("gen.generate")}
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-3">
-                      📐 1080×1440 • ⚡ Professional sifat
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-3">{t("gen.sizeInfo")}</p>
                   </div>
                 )}
               </div>
@@ -346,18 +316,18 @@ const Generate = () => {
                 {processing ? (
                   <div className="py-12 sm:py-16">
                     <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-primary mx-auto mb-4 sm:mb-6 animate-spin" />
-                    <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">AI rasmni tayyorlamoqda...</h2>
-                    <p className="text-sm text-muted-foreground">Professional rasm tayyorlanmoqda. 15-30 soniya kuting.</p>
+                    <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">{t("gen.processing")}</h2>
+                    <p className="text-sm text-muted-foreground">{t("gen.processingDesc")}</p>
                     <div className="mt-4 sm:mt-6 max-w-xs mx-auto space-y-1.5 text-left text-xs sm:text-sm text-muted-foreground">
-                      <p>✅ Mahsulot tahlil qilinmoqda</p>
-                      <p>✅ {selectedScene === "nature" ? "Tabiat foni" : selectedScene === "lifestyle" ? "Lifestyle muhit" : selectedScene === "studio" ? "Studia foni" : selectedScene === "infographic" ? "Infografika" : "Minimalist fon"} yaratilmoqda</p>
-                      <p>✅ {selectedModel === "with-model" ? "Model qo'shilmoqda" : "Professional kompozitsiya"}</p>
-                      <p>✅ 1080×1440 o'lchamga moslashtirilmoqda</p>
+                      <p>✅ {t("gen.analyzing")}</p>
+                      <p>✅ {selectedSceneLabel ? t(selectedSceneLabel) : ""} {t("gen.creatingBg")}</p>
+                      <p>✅ {selectedModel === "with-model" ? t("gen.addingModel") : t("gen.proComposition")}</p>
+                      <p>✅ {t("gen.resizing")}</p>
                     </div>
                   </div>
                 ) : resultUrl ? (
                   <div>
-                    <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Tayyor! 🎉</h2>
+                    <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">{t("gen.done")}</h2>
 
                     <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden mb-4 sm:mb-6">
                       <div className="flex flex-col sm:flex-row min-h-[200px] sm:min-h-[300px]">
@@ -373,28 +343,28 @@ const Generate = () => {
                         </div>
                       </div>
                       <div className="flex border-t border-border text-xs font-medium">
-                        <div className="w-1/2 text-center py-2 text-muted-foreground border-r border-border">Asl rasm</div>
-                        <div className="w-1/2 text-center py-2 text-primary">AI natijasi</div>
+                        <div className="w-1/2 text-center py-2 text-muted-foreground border-r border-border">{t("gen.original")}</div>
+                        <div className="w-1/2 text-center py-2 text-primary">{t("gen.aiResult")}</div>
                       </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Button size="lg" className="gradient-primary border-0 px-6 sm:px-8 w-full sm:w-auto" onClick={handleDownload}>
                         <Download className="mr-2 h-5 w-5" />
-                        Yuklab olish
+                        {t("gen.download")}
                       </Button>
                       <Button size="lg" variant="outline" onClick={handleNewImage} className="w-full sm:w-auto">
-                        Yangi rasm
+                        {t("gen.newImageBtn")}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-4">
-                      1080×1440 • {modelOptions.find(m => m.id === selectedModel)?.label} • {sceneOptions.find(s => s.id === selectedScene)?.label}
+                      1080×1440 • {selectedModel && t(modelOptions.find(m => m.id === selectedModel)?.labelKey || "")} • {selectedScene && t(sceneOptions.find(s => s.id === selectedScene)?.labelKey || "")}
                     </p>
                   </div>
                 ) : (
                   <div className="py-12 sm:py-16">
-                    <p className="text-muted-foreground">Xatolik yuz berdi. Qayta urinib ko'ring.</p>
-                    <Button variant="outline" className="mt-4" onClick={handleNewImage}>Qayta boshlash</Button>
+                    <p className="text-muted-foreground">{t("gen.error")}</p>
+                    <Button variant="outline" className="mt-4" onClick={handleNewImage}>{t("gen.restart")}</Button>
                   </div>
                 )}
               </div>

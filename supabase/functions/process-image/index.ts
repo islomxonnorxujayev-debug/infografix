@@ -67,57 +67,76 @@ serve(async (req) => {
     }
 
     const withModel = modelType === "with-model";
+    const langName = language === "ru" ? "Russian" : "Uzbek";
 
     const sceneInstructions: Record<string, string> = {
-      nature: `BACKGROUND: Lush outdoor nature scene. Options: garden with blooming flowers, forest clearing with sunlight rays, tropical beach, mountain meadow, autumn park with golden leaves. Use natural sunlight with warm golden tones. Add depth of field with bokeh on background greenery.`,
-      lifestyle: `BACKGROUND: Realistic lifestyle environment where the product naturally belongs. Options: modern apartment, cozy kitchen, trendy cafe, office desk setup, bedroom vanity, outdoor patio. The scene should tell a story about the product's use in everyday life. Warm, inviting ambient lighting.`,
-      studio: `BACKGROUND: High-end photography studio setup. Options: seamless gradient backdrop (vary colors: soft gray, warm beige, cool blue, blush pink), dramatic spotlight with rim lighting, professional product photography with reflections on glossy surface. Clean, premium, commercial feel.`,
-      minimalist: `BACKGROUND: Ultra-clean minimalist design. Solid color or very subtle gradient. Options: pure white with soft shadow, pale pastel (mint, lavender, peach), geometric shapes as subtle accents, floating product on clean surface. Focus entirely on the product. Lots of negative space.`,
-      infographic: `BACKGROUND: Information-rich design layout. Clean solid or gradient background with space for text overlays. Include: product feature callouts with arrows/lines pointing to key areas, benefit icons, specification badges, comparison charts or rating stars. The design should educate the viewer about the product while looking premium.`,
+      nature: `SCENE: Stunning outdoor nature setting. Think top Wildberries/Pinterest product shoots. Lush garden, sunlit forest clearing, tropical beach at golden hour, or blooming meadow. Natural sunlight with warm golden tones, volumetric light rays, lens flare. Shallow depth of field with creamy bokeh on background foliage.`,
+      lifestyle: `SCENE: High-end lifestyle environment — the kind you see in Pinterest trending product photos. Modern Scandinavian apartment, artisan coffee shop, designer kitchen, luxury bathroom, or cozy reading nook. The scene tells a compelling story about the product in real life. Warm ambient lighting with subtle window light and shadows. Rich textures: marble, wood, linen, ceramics.`,
+      studio: `SCENE: World-class commercial studio photography. Seamless gradient backdrop (alternate between: warm cream, cool gray, blush pink, sage green, deep navy). Three-point lighting: key light at 45°, soft fill, dramatic rim/hair light creating a luminous edge glow. Reflective surface below for subtle mirror effect. Think Wildberries bestseller hero images.`,
+      minimalist: `SCENE: Ultra-premium minimalist composition — editorial magazine quality. Clean solid backdrop or whisper-soft gradient. Ample negative space. Subtle geometric accents (thin gold lines, floating shapes). One or two carefully chosen complementary props (a leaf, a fabric swatch, a stone). The product floats in a serene, luxurious void. Soft diffused lighting with no harsh shadows.`,
+      infographic: `SCENE: Professional marketplace infographic card — like top-rated Wildberries/Ozon listings. Clean white or light gradient background. Structured layout with:
+- Product as the hero center element
+- 3-4 key feature callouts with icons and short text labels (in ${langName})
+- Benefit badges (e.g. ✓ quality marks, ratings, certifications)
+- Clean typography hierarchy: bold headline, supporting subtext
+- Thin divider lines or subtle containers for visual structure
+- All text and labels MUST be in ${langName}
+Think: the product card that gets the highest click-through rate on a marketplace.`,
     };
 
     const modelInstructions = withModel
-      ? `HUMAN MODEL: Include an attractive, diverse model naturally interacting with the product. The model should be wearing/holding/using/demonstrating the product in a believable way. Show genuine expression — confidence, joy, or satisfaction. Model should complement the product, not overshadow it. Professional fashion/commercial photography quality.`
-      : `NO HUMAN MODEL: Do not include any person in the image. Focus entirely on the product itself. Use creative product photography techniques: floating product, dynamic angles, artistic shadows, reflections, or complementary props that enhance the product story.`;
+      ? `HUMAN MODEL: Include a photorealistic, attractive model naturally using/wearing/holding the product. The model's pose, expression, and styling should match a high-budget commercial campaign (think Zara, H&M, or Wildberries top sellers). The product must remain the focal point — the model enhances the story but doesn't dominate. Correct anatomical proportions. Natural skin texture and lighting on the model.`
+      : `NO HUMAN MODEL: Product-only composition. Use creative commercial photography techniques: dynamic angles (3/4 view, slight tilt), artistic shadows, complementary lifestyle props that add context without cluttering. The product is the sole hero — make it look irresistible through lighting and composition alone.`;
 
-    const langLabel = language === "ru" ? "Russian" : "Uzbek";
-    const langInstruction = `LANGUAGE: ALL text overlays, badges, labels, benefit descriptions, and any written content in the image MUST be in ${langLabel}. Do not use English or any other language. Every word visible in the final image must be ${langLabel}.`;
+    const prompt = `You are an elite e-commerce product photographer whose images consistently achieve top conversion rates on Wildberries, Pinterest, and premium marketplaces.
 
-    const prompt = `You are the world's top e-commerce product photographer and creative director. Create a PREMIUM promotional product image.
+CREATE a scroll-stopping, purchase-driving product image.
 
-OUTPUT: Exactly 1080x1440 pixels (3:4 portrait ratio).
+OUTPUT: Exactly 1080×1440 pixels (3:4 portrait ratio). High-resolution, no artifacts, no blur.
 
-ANALYZE THE PRODUCT: Look at this product image carefully. Identify what it is (clothing, electronics, cosmetics, food, furniture, etc.) and determine its REAL-WORLD SIZE. This is critical — a phone should look phone-sized, a shoe should look shoe-sized, a lipstick should look small, furniture should look large.
+STEP 1 — PRODUCT ANALYSIS:
+Study the uploaded product image meticulously:
+- What category is it? (apparel, cosmetics, electronics, home goods, food, accessories, etc.)
+- What are its REAL-WORLD physical dimensions? (A ring is 2cm, a phone is 15cm, a jacket is 70cm, a sofa is 200cm)
+- What are its key selling features? (texture, color, material, brand elements)
+This analysis drives EVERYTHING below.
 
 ${sceneInstructions[sceneType] || sceneInstructions.studio}
 
 ${modelInstructions}
 
-CRITICAL — PRODUCT SIZE & PROPORTIONS:
-- ASSESS the product's real-world dimensions accurately. A ring is tiny, a sofa is large, a bottle is medium.
-- When a human model is present, the product MUST be proportionally correct relative to the model's body. A watch should fit on a wrist, a bag should be held naturally, shoes should fit feet. NEVER make the product unnaturally large or small.
-- When no model is present, scale the product realistically against background elements (table, shelf, plants). Use environmental cues to establish correct scale.
-- Product should occupy 25-45% of the frame (NOT more) to maintain realistic proportions and leave space for the scene.
-- If the product is small (jewelry, cosmetics, phone accessories), show it at correct small scale with appropriate close-up composition rather than enlarging it unrealistically.
+STEP 2 — PRODUCT SIZE & SCALE (CRITICAL):
+- The product MUST appear at its CORRECT real-world size relative to all other elements
+- With a model: a watch fits a wrist, shoes fit feet, a bag hangs from a shoulder at realistic scale. NEVER enlarge small products to fill the frame — instead use tighter framing/cropping
+- Without a model: use environmental props as scale anchors (table, shelf, hand silhouette, ruler-like elements). A lipstick should look small next to a mirror. A sofa should dominate the frame.
+- Product should occupy 20-40% of the frame maximum. The remaining 60-80% is scene, breathing space, and context.
+- WRONG: Product stretched to fill entire frame, ignoring real proportions
+- RIGHT: Product at natural size within a beautifully composed scene
 
-PRODUCT PLACEMENT:
-- Extract the product cleanly from its current background
-- Place it naturally in the new scene with correct perspective and realistic shadows/reflections
-- Apply professional studio lighting: key light, fill light, rim light for depth
-- Ensure the product colors, textures, and details are accurate and enhanced
+STEP 3 — LIGHTING & COLOR:
+- Three-point professional lighting minimum
+- Color grading: cinematic, warm, or moody depending on scene — NOT flat or overexposed
+- Product colors must be TRUE TO ORIGINAL — do not alter the product's actual colors
+- Subtle vignette to draw focus to center
+- No color banding, no harsh transitions
 
-${langInstruction}
+STEP 4 — COMMERCIAL DESIGN ELEMENTS (all text in ${langName}):
+- Add 1-2 elegant text overlays: product category or a short compelling tagline in ${langName}
+- Include subtle quality indicators: a small rating badge, a "TOP" or "HIT" label, or a material/quality icon
+- Typography: modern, clean, high contrast against background
+- Do NOT clutter — every element must serve a purpose
+- For infographic style: follow a structured card layout with clear visual hierarchy
 
-COMMERCIAL QUALITY:
-- Add subtle text overlays as elegant typography — product name or category (in ${langLabel})
-- Include 1-2 small benefit badges or quality indicators (in ${langLabel})
-- Professional color grading that matches the scene mood
-- Sharp focus on product, appropriate depth of field on background
-- The final image must look like it belongs in a premium online store listing
+STEP 5 — FINAL QUALITY CHECK:
+- Is the product at correct real-world scale? 
+- Would this image be the #1 bestseller hero image on Wildberries?
+- Does it look like a $5,000 photoshoot, not an AI generation?
+- Are all visible texts in ${langName}?
+- Is the composition balanced with proper breathing room?
 
-VARIETY: Make each generation unique. Vary the exact background colors, lighting angles, composition, and styling. The image should feel fresh and premium.`;
+VARIETY: Each generation must feel unique — vary lighting angle, color palette, camera angle, and styling details.`;
 
-    console.log("Generating:", generationId, "model:", modelType, "scene:", sceneType);
+    console.log("Generating:", generationId, "model:", modelType, "scene:", sceneType, "lang:", language);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -126,7 +145,7 @@ VARIETY: Make each generation unique. Vary the exact background colors, lighting
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-3-pro-image-preview",
         messages: [
           {
             role: "user",
