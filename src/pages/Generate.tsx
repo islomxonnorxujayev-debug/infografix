@@ -239,9 +239,9 @@ const Generate = () => {
                           : "border-border bg-card hover:border-primary/20"
                       }`}
                     >
-                      <div className="text-3xl mb-2">{mp.emoji}</div>
-                      <div className="font-display font-bold text-foreground">{mp.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{mp.ratio} • {mp.size}</div>
+                      <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{mp.emoji}</div>
+                      <div className="font-display font-bold text-foreground text-sm sm:text-base">{mp.name}</div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{mp.ratio} • {mp.size}</div>
                     </button>
                   ))}
                 </div>
