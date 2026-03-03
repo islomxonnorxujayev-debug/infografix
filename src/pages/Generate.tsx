@@ -314,12 +314,12 @@ const Generate = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-4">
-                      <Button size="lg" className="gradient-primary border-0 px-8" onClick={handleDownload}>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                      <Button size="lg" className="gradient-primary border-0 px-6 sm:px-8 w-full sm:w-auto" onClick={handleDownload}>
                         <Download className="mr-2 h-5 w-5" />
                         Yuklab olish
                       </Button>
-                      <Button size="lg" variant="outline" onClick={handleNewImage}>
+                      <Button size="lg" variant="outline" onClick={handleNewImage} className="w-full sm:w-auto">
                         Yangi rasm
                       </Button>
                     </div>
