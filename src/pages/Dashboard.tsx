@@ -44,14 +44,14 @@ const Dashboard = () => {
             </div>
             <span className="font-display text-lg font-bold text-foreground">MarketModel AI</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <CreditCard className="h-4 w-4" />
-              {credits !== null ? `${credits} credits` : "..."}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
+              <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              {credits !== null ? `${credits}` : "..."}
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-1" />
-              Log out
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-xs sm:text-sm px-2 sm:px-3">
+              <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden sm:inline">Log out</span>
             </Button>
           </div>
         </div>
