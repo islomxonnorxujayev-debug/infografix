@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3 } from "lucide-react";
+import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, Languages } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +26,11 @@ const sceneOptions = [
   { id: "infographic", label: "Infografika", description: "Ma'lumotli dizayn", icon: BarChart3 },
 ];
 
+const languageOptions = [
+  { id: "uz", label: "O'zbekcha", flag: "🇺🇿" },
+  { id: "ru", label: "Русский", flag: "🇷🇺" },
+];
+
 const Generate = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,6 +41,7 @@ const Generate = () => {
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("uz");
 
   const previewUrl = useMemo(() => {
     if (uploadedFile) return URL.createObjectURL(uploadedFile);
@@ -97,6 +103,7 @@ const Generate = () => {
           modelType: selectedModel,
           sceneType: selectedScene,
           generationId: genData.id,
+          language: selectedLanguage,
         },
       });
 
@@ -143,6 +150,7 @@ const Generate = () => {
     setGenerationId(null);
     setSelectedModel(null);
     setSelectedScene(null);
+    setSelectedLanguage("uz");
     setCurrentStep(0);
   };
 
@@ -277,6 +285,27 @@ const Generate = () => {
                         <opt.icon className={`h-5 w-5 mx-auto mb-1.5 ${selectedScene === opt.id ? "text-primary" : "text-muted-foreground"}`} />
                         <div className="font-display font-bold text-foreground text-xs sm:text-sm">{opt.label}</div>
                         <div className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Language selection */}
+                <div className="mb-6 sm:mb-8">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">🌐 Matn tili</h3>
+                  <div className="flex gap-3 justify-center max-w-xs mx-auto">
+                    {languageOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSelectedLanguage(opt.id)}
+                        className={`flex-1 p-3 sm:p-4 rounded-2xl border text-center transition-all ${
+                          selectedLanguage === opt.id
+                            ? "border-primary bg-primary/5 shadow-glow"
+                            : "border-border bg-card hover:border-primary/20"
+                        }`}
+                      >
+                        <span className="text-2xl block mb-1">{opt.flag}</span>
+                        <div className="font-display font-bold text-foreground text-xs sm:text-sm">{opt.label}</div>
                       </button>
                     ))}
                   </div>
