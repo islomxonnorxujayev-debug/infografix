@@ -102,13 +102,25 @@ const Dashboard = () => {
     setTgLoading(false);
   };
 
-  const handleAdminAccess = () => {
-    if (password === ADMIN_PASSWORD) {
-      setShowAdminDialog(false);
-      setPassword("");
-      navigate("/admin");
-    } else {
-      toast.error("Parol noto'g'ri!");
+  const handleAdminAccess = async () => {
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
+      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/verify-admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setShowAdminDialog(false);
+        setPassword("");
+        navigate("/admin");
+      } else {
+        toast.error("Parol noto'g'ri!");
+        setPassword("");
+      }
+    } catch {
+      toast.error("Xatolik yuz berdi");
       setPassword("");
     }
   };
