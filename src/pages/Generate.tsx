@@ -87,15 +87,28 @@ const Generate = () => {
     setProcessing(true);
 
     try {
+      // Check file size (max 5MB for reliable uploads)
+      if (uploadedFile.size > 5 * 1024 * 1024) {
+        toast.error("File too large. Please use an image under 5MB.");
+        setProcessing(false);
+        return;
+      }
+
       // 1. Upload original to storage
       const fileExt = uploadedFile.name.split('.').pop();
       const filePath = `${user.id}/originals/${crypto.randomUUID()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, uploadedFile);
+        .upload(filePath, uploadedFile, {
+          cacheControl: "3600",
+          upsert: true,
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
 
       const { data: urlData } = supabase.storage
         .from("product-images")
