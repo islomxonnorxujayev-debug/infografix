@@ -26,6 +26,11 @@ const sceneOptions = [
   { id: "infographic", label: "Infografika", description: "Ma'lumotli dizayn", icon: BarChart3 },
 ];
 
+const languageOptions = [
+  { id: "uz", label: "O'zbekcha", flag: "🇺🇿" },
+  { id: "ru", label: "Русский", flag: "🇷🇺" },
+];
+
 const Generate = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
