@@ -298,7 +298,7 @@ serve(async (req) => {
           package_name: pkg?.name || `${credits} ta rasm`,
           credits,
           amount,
-          screenshot_url: urlData.publicUrl,
+          screenshot_url: screenshotRef,
           status: "pending",
         });
 
