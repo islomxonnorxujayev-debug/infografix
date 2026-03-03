@@ -80,13 +80,15 @@ const Dashboard = () => {
     }
   }, []);
 
-  const loadTelegramData = async (telegramId: number) => {
+  const loadTelegramData = async (telegramId: number, initData: string) => {
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
+      const body: any = { telegram_id: telegramId };
+      if (initData) body.init_data = initData;
       const res = await fetch(`https://${projectId}.supabase.co/functions/v1/get-user-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegram_id: telegramId }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const data = await res.json();
