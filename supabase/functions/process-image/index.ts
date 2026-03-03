@@ -58,7 +58,7 @@ serve(async (req) => {
       });
     }
 
-    const { imageUrl, modelType, sceneType, generationId } = await req.json();
+    const { imageUrl, modelType, sceneType, generationId, language } = await req.json();
 
     if (!imageUrl || !generationId) {
       return new Response(JSON.stringify({ error: "Missing imageUrl or generationId" }), {
