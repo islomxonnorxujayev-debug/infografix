@@ -1,5 +1,5 @@
-import { Sparkles, Shield, CreditCard, ImageIcon, Clock, CheckCircle, XCircle, Wallet, Upload, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Sparkles, Shield, CreditCard, ImageIcon, Clock, CheckCircle, XCircle, Wallet, Upload, LogOut, Loader2, Download, Camera } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
