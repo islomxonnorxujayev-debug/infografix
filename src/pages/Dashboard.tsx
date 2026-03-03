@@ -77,7 +77,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {generations.length === 0 ? (
+        {credits !== null && credits > 0 && generations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border bg-card">
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -91,7 +91,21 @@ const Dashboard = () => {
               </Link>
             </Button>
           </div>
-        ) : (
+        ) : credits !== null && credits <= 0 && generations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border bg-card">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+              <Wallet className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-display text-lg font-semibold text-foreground mb-1">Kreditlar tugadi</h3>
+            <p className="text-muted-foreground text-sm mb-6">Rasm yaratish uchun kredit sotib oling</p>
+            <Button className="gradient-primary border-0" asChild>
+              <Link to="/balance">
+                <Wallet className="mr-2 h-4 w-4" />
+                Kredit sotib olish
+              </Link>
+            </Button>
+          </div>
+        ) : generations.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {generations.map((gen) => (
               <div key={gen.id} className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -112,7 +126,7 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
