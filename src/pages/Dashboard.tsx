@@ -138,14 +138,28 @@ const Dashboard = () => {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (data.valid) {
-        setShowAdminDialog(false);
-        setPassword("");
-        navigate("/admin");
-      } else {
+      if (!data.valid) {
         toast.error("Parol noto'g'ri!");
         setPassword("");
+        return;
       }
+
+      if (!data.adminEmail) {
+        toast.error("Admin akkaunt topilmadi");
+        setPassword("");
+        return;
+      }
+
+      const { error } = await signIn(data.adminEmail, password);
+      if (error) {
+        toast.error("Admin login xatoligi: " + error.message);
+        setPassword("");
+        return;
+      }
+
+      setShowAdminDialog(false);
+      setPassword("");
+      navigate("/admin");
     } catch {
       toast.error("Xatolik yuz berdi");
       setPassword("");
