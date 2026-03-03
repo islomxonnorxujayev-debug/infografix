@@ -233,7 +233,7 @@ const Generate = () => {
                     <button
                       key={mp.name}
                       onClick={() => setSelectedMarketplace(i)}
-                      className={`p-6 rounded-2xl border text-center transition-all ${
+                      className={`p-4 sm:p-6 rounded-2xl border text-center transition-all ${
                         selectedMarketplace === i
                           ? "border-primary bg-primary/5 shadow-glow"
                           : "border-border bg-card hover:border-primary/20"
