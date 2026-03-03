@@ -57,13 +57,13 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-8">
+      <div className="container mx-auto px-4 py-6 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Create and manage your product images</p>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">Create and manage your product images</p>
           </div>
-          <Button className="gradient-primary border-0" asChild>
+          <Button className="gradient-primary border-0 w-full sm:w-auto" asChild>
             <Link to="/generate">
               <Plus className="mr-2 h-4 w-4" />
               Create New Image
