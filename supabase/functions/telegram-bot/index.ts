@@ -130,11 +130,17 @@ serve(async (req) => {
         `💰 Balans: <b>${profile.credits_remaining}</b> ta rasm\n` +
         (isNew ? `🎁 Sizga 1 ta bepul rasm berildi!\n\n` : "\n") +
         `📋 <b>Buyruqlar:</b>\n` +
-        `/generate — Rasm yaratish (rasm yuboring)\n` +
         `/balance — Balansni ko'rish\n` +
         `/buy — Kredit sotib olish\n` +
         `/help — Yordam\n\n` +
-        `Mahsulot rasmini yuboring — biz uni professional qilib qayta ishlaymiz! 🚀`
+        `Mahsulot rasmini yuboring — biz uni professional qilib qayta ishlaymiz! 🚀`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "📱 Ilovani ochish", web_app: { url: WEB_APP_URL } }
+            ]]
+          }
+        }
       );
       return new Response("OK");
     }
