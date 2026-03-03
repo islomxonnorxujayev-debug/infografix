@@ -155,23 +155,23 @@ const Generate = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8 sm:mb-10">
           {steps.map((step, i) => (
-            <div key={step.label} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            <div key={step.label} className="flex items-center gap-1 sm:gap-2">
+              <div className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
                 i === currentStep
                   ? "gradient-primary text-primary-foreground"
                   : i < currentStep
                   ? "bg-primary/10 text-primary"
                   : "bg-muted text-muted-foreground"
               }`}>
-                <step.icon className="h-4 w-4" />
-                {step.label}
+                <step.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">{step.label}</span>
               </div>
               {i < steps.length - 1 && (
-                <div className={`w-8 h-px ${i < currentStep ? "bg-primary" : "bg-border"}`} />
+                <div className={`w-4 sm:w-8 h-px ${i < currentStep ? "bg-primary" : "bg-border"}`} />
               )}
             </div>
           ))}
