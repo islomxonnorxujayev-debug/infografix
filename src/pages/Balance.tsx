@@ -174,9 +174,12 @@ const Balance = () => {
                 onClick={copyCard}
                 className="flex items-center gap-3 w-full p-3 rounded-lg bg-muted border border-border hover:bg-muted/80 transition-colors"
               >
-                <span className="font-mono text-lg font-bold text-foreground tracking-wider flex-1 text-left">
-                  {CARD_NUMBER}
-                </span>
+                <div className="flex-1 text-left">
+                  <span className="font-mono text-lg font-bold text-foreground tracking-wider block">
+                    {CARD_NUMBER}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{CARD_HOLDER}</span>
+                </div>
                 {copied ? (
                   <Check className="h-5 w-5 text-green-500 shrink-0" />
                 ) : (
