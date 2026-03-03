@@ -23,7 +23,6 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
-      console.error("Missing env vars");
       return new Response(JSON.stringify({ error: "Server configuration error" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -35,7 +34,6 @@ serve(async (req) => {
       });
     }
 
-    // Auth
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -48,7 +46,6 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check credits
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("credits_remaining")
@@ -61,7 +58,7 @@ serve(async (req) => {
       });
     }
 
-    const { imageUrl, marketplace, marketplaceRatio, marketplaceSize, generationId } = await req.json();
+    const { imageUrl, modelType, sceneType, generationId } = await req.json();
 
     if (!imageUrl || !generationId) {
       return new Response(JSON.stringify({ error: "Missing imageUrl or generationId" }), {
@@ -69,69 +66,47 @@ serve(async (req) => {
       });
     }
 
-    // Build dynamic, category-aware marketplace promotional image prompt
-    const prompt = `You are the #1 e-commerce creative designer in the world. Your images consistently generate 3x more clicks and sales than competitors. 
+    const withModel = modelType === "with-model";
 
-TASK: Analyze this product image. Identify its category (fashion, electronics, home, beauty, sports, food, toys, etc.) and create a PREMIUM promotional marketplace image that will MAXIMIZE sales on ${marketplace || "e-commerce"}.
+    const sceneInstructions: Record<string, string> = {
+      nature: `BACKGROUND: Lush outdoor nature scene. Options: garden with blooming flowers, forest clearing with sunlight rays, tropical beach, mountain meadow, autumn park with golden leaves. Use natural sunlight with warm golden tones. Add depth of field with bokeh on background greenery.`,
+      lifestyle: `BACKGROUND: Realistic lifestyle environment where the product naturally belongs. Options: modern apartment, cozy kitchen, trendy cafe, office desk setup, bedroom vanity, outdoor patio. The scene should tell a story about the product's use in everyday life. Warm, inviting ambient lighting.`,
+      studio: `BACKGROUND: High-end photography studio setup. Options: seamless gradient backdrop (vary colors: soft gray, warm beige, cool blue, blush pink), dramatic spotlight with rim lighting, professional product photography with reflections on glossy surface. Clean, premium, commercial feel.`,
+      minimalist: `BACKGROUND: Ultra-clean minimalist design. Solid color or very subtle gradient. Options: pure white with soft shadow, pale pastel (mint, lavender, peach), geometric shapes as subtle accents, floating product on clean surface. Focus entirely on the product. Lots of negative space.`,
+      infographic: `BACKGROUND: Information-rich design layout. Clean solid or gradient background with space for text overlays. Include: product feature callouts with arrows/lines pointing to key areas, benefit icons, specification badges, comparison charts or rating stars. The design should educate the viewer about the product while looking premium.`,
+    };
 
-ADAPT THE ENTIRE DESIGN BASED ON PRODUCT CATEGORY:
+    const modelInstructions = withModel
+      ? `HUMAN MODEL: Include an attractive, diverse model naturally interacting with the product. The model should be wearing/holding/using/demonstrating the product in a believable way. Show genuine expression — confidence, joy, or satisfaction. Model should complement the product, not overshadow it. Professional fashion/commercial photography quality.`
+      : `NO HUMAN MODEL: Do not include any person in the image. Focus entirely on the product itself. Use creative product photography techniques: floating product, dynamic angles, artistic shadows, reflections, or complementary props that enhance the product story.`;
 
-FOR FASHION/CLOTHING/ACCESSORIES:
-- Feature an attractive model wearing or holding the product naturally
-- Use a lifestyle setting: urban street, studio, or trendy interior
-- Warm, fashionable color palette with soft lighting
-- Add style-related text badges: material, size range, season
+    const prompt = `You are the world's top e-commerce product photographer and creative director. Create a PREMIUM promotional product image.
 
-FOR ELECTRONICS/GADGETS/TECH:
-- Sleek, futuristic dark or gradient background with neon accents and tech-feel lighting
-- Show the device from multiple angles or in an exploded view
-- Add specification callouts with clean icons
-- Hands or desk scene showing the product in use
+OUTPUT: Exactly 1080x1440 pixels (3:4 portrait ratio).
 
-FOR HOME/KITCHEN/FURNITURE:
-- Cozy, warm interior scene as background
-- Product placed in a realistic room setting
-- Earthy, warm color tones with natural light feel
-- Lifestyle composition showing comfort and quality
+ANALYZE THE PRODUCT: Look at this product image carefully. Identify what it is (clothing, electronics, cosmetics, food, furniture, etc.) and design everything around making THIS specific product irresistible to buy.
 
-FOR BEAUTY/COSMETICS/HEALTH:
-- Elegant, luxurious gradient background (rose gold, pearl, soft pink, lavender)
-- Close-up beauty shot with model applying or holding the product
-- Dewy, fresh, premium feel with sparkle effects
-- Ingredient or benefit callouts
+${sceneInstructions[sceneType] || sceneInstructions.studio}
 
-FOR SPORTS/FITNESS:
-- Dynamic, energetic background with motion blur or action effects
-- Athletic model using the product mid-workout
-- Bold, energetic colors (electric blue, neon green, fiery orange)
-- Performance stats or feature badges
+${modelInstructions}
 
-FOR KIDS/TOYS:
-- Bright, playful, colorful background with fun patterns
-- Happy child or family interaction with the product
-- Cartoon-style decorative elements, stars, bubbles
-- Age range and safety badges
+PRODUCT PLACEMENT:
+- Extract the product cleanly from its current background
+- Place it prominently in the new scene — it should be the hero of the composition
+- Apply professional studio lighting: key light, fill light, rim light for depth
+- Ensure the product colors, textures, and details are accurate and enhanced
+- Product should occupy 40-60% of the frame
 
-FOR ALL CATEGORIES — MANDATORY RULES:
+COMMERCIAL QUALITY:
+- Add subtle text overlays in the product's language context: product name or category as elegant typography
+- Include 1-2 small benefit badges or quality indicators
+- Professional color grading that matches the scene mood
+- Sharp focus on product, appropriate depth of field on background
+- The final image must look like it belongs in a premium online store listing
 
-1. BACKGROUND: Category-specific creative background. EACH image must have a UNIQUE color scheme and style. Vary between: gradient backgrounds, lifestyle scenes, abstract geometric, bokeh, textured surfaces. Pick what fits the product best.
+VARIETY: Make each generation unique. Vary the exact background colors, lighting angles, composition, and styling. The image should feel fresh and premium.`;
 
-2. PRODUCT: Extract cleanly. Show it large, sharp, well-lit. Add professional studio lighting with highlights and depth. Product accuracy is paramount — exact colors, textures, proportions.
-
-3. HUMAN ELEMENT: Include a person using, wearing, holding, or demonstrating the product. Position them naturally in the composition. If a full model is inappropriate, show hands interacting with the product, or the product in a lifestyle context.
-
-4. TYPOGRAPHY: Add the product name/category as bold, modern text. Use ${marketplace === "Uzum Market" || marketplace === "Wildberries" || marketplace === "Ozon" ? "Russian" : "English"} language. Include 2-3 benefit badges. Make text readable and professionally styled with shadows or outlines for contrast.
-
-5. COMPOSITION (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
-   - Layered layout: background → lifestyle/model → product closeup → text overlay
-   - Product fills 40-60% of frame, model/lifestyle 30-40%, text 10-20%
-   - Professional balance that draws the eye to the product first
-
-6. SALES PSYCHOLOGY: The image must trigger an immediate desire to buy. Use premium feel, social proof elements (rating stars, bestseller badges), and urgency cues. Make the viewer think: "I need this."
-
-FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${marketplace || "any marketplace"} that looks like it was designed by a premium agency. Include creative themed background, human model/lifestyle element, product showcase, and sales-driving text. Every image you create must look DIFFERENT from the last — vary colors, layouts, and styles based on the product.`;
-
-    console.log("Calling AI for generation:", generationId, "marketplace:", marketplace);
+    console.log("Generating:", generationId, "model:", modelType, "scene:", sceneType);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -163,11 +138,6 @@ FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${mark
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI krediti tugadi. Qo'llab-quvvatlash xizmatiga murojaat qiling." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       return new Response(JSON.stringify({ error: "AI rasmni qayta ishlashda xatolik yuz berdi" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -176,7 +146,6 @@ FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${mark
 
     const aiData = await aiResponse.json();
 
-    // Check for rate limit error embedded in the response
     const choiceError = aiData.choices?.[0]?.error;
     if (choiceError) {
       console.error("AI choice error:", JSON.stringify(choiceError));
@@ -199,7 +168,6 @@ FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${mark
       });
     }
 
-    // Upload result
     const base64Data = resultImageBase64.replace(/^data:image\/\w+;base64,/, "");
     const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     const resultPath = `${user.id}/results/${generationId}.png`;
@@ -219,13 +187,11 @@ FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${mark
       .from("product-images")
       .getPublicUrl(resultPath);
 
-    // Update generation record
     await supabaseAdmin
       .from("generations")
       .update({ result_url: publicUrlData.publicUrl, status: "completed" })
       .eq("id", generationId);
 
-    // Deduct credit
     await supabaseAdmin
       .from("profiles")
       .update({ credits_remaining: profile.credits_remaining - 1 })
