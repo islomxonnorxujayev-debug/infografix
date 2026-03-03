@@ -69,39 +69,42 @@ serve(async (req) => {
       });
     }
 
-    // Build professional marketplace-ready prompt
-    const prompt = `You are a world-class e-commerce product photographer and photo editor. Transform this product image into a professional, marketplace-ready product photo.
+    // Build creative marketplace promotional image prompt
+    const prompt = `You are a world-class e-commerce creative designer and product marketing expert. Transform this product image into a STUNNING, eye-catching marketplace promotional image.
 
-CRITICAL REQUIREMENTS — follow ALL of these:
+CRITICAL — THIS IS NOT A SIMPLE BACKGROUND REMOVAL. Create a FULL PROMOTIONAL DESIGN:
 
-1. BACKGROUND: Remove the existing background completely. Replace with a pure clean white background (#FFFFFF).
+1. CREATIVE BACKGROUND:
+   - Create a vibrant, colorful gradient or themed background that matches the product category
+   - Use bold colors, gradients, abstract shapes, light effects, and decorative elements
+   - Add visual flair: geometric patterns, bokeh effects, leaves, sparkles, or category-relevant decorations
+   - The background should be visually striking and attention-grabbing, NOT plain white
 
-2. LIGHTING: Apply professional studio lighting:
-   - Main key light from upper-left (45°)
-   - Soft fill light from right side
-   - Subtle rim/edge light to separate product from background
-   - The product should look naturally lit, like in a real photo studio
+2. PRODUCT PRESENTATION:
+   - Extract the product cleanly from its original background
+   - Place it prominently in the composition — large, clear, and well-lit
+   - Add professional studio lighting effects: highlights, reflections, and depth
+   - The product must remain photorealistic and accurate in color/detail
 
-3. SHADOWS: Add a natural, soft contact shadow beneath the product on the white background. The shadow should be subtle and realistic — not harsh or cartoonish.
+3. TEXT & BRANDING:
+   - Add the product name or category as large, bold, stylish text
+   - Use modern typography with effects like shadows, outlines, or gradient fills
+   - Add a short tagline or feature callout if relevant
+   - Text should be in the same language context as the marketplace (${marketplace || "e-commerce"})
 
-4. PRODUCT INTEGRITY: 
-   - Keep the product EXACTLY as it is — do not change its shape, color, texture, or proportions
-   - Maintain all original details, labels, and branding
-   - The product must look photorealistic, NOT like a render or cartoon
-   - Do NOT add any text, watermarks, or logos
+4. COMPOSITION for ${marketplace || "e-commerce"} (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
+   - Create a balanced, professional layout like top marketplace sellers use
+   - Product takes 40-60% of the frame
+   - Text and decorative elements fill remaining space
+   - Design should look like a paid professional marketplace listing, not a basic photo
 
-5. COMPOSITION for ${marketplace || "e-commerce"} (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
-   - Center the product in frame
-   - Leave ~15% padding on all sides
-   - Product should fill about 70-80% of the frame
+5. STYLE REFERENCE:
+   - Think: top-selling Wildberries/Ozon/Amazon product cards
+   - Vibrant, commercial, attention-grabbing
+   - Professional product marketing design
+   - Must stand out in a feed of competing products
 
-6. COLOR & QUALITY:
-   - Accurate, vibrant product colors
-   - High contrast between product and white background
-   - Sharp, clean edges
-   - Professional commercial photography quality
-
-OUTPUT: A single clean product photo on white background that looks like it was shot in a professional photography studio. Ready to upload directly to ${marketplace || "any marketplace"}.`;
+OUTPUT: A complete, ready-to-upload promotional product image for ${marketplace || "any marketplace"}. NOT a plain white background photo — a FULL creative marketing design with styled background, text, and professional composition.`;
 
     console.log("Calling AI for generation:", generationId, "marketplace:", marketplace);
 
