@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.verify-admin]
 verify_jwt = false
+
+[functions.telegram-generate]
+verify_jwt = false

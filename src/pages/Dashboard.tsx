@@ -1,5 +1,5 @@
-import { Sparkles, Shield, CreditCard, ImageIcon, Clock, CheckCircle, XCircle, Wallet, Upload, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Sparkles, Shield, CreditCard, ImageIcon, Clock, CheckCircle, XCircle, Wallet, Upload, LogOut, Loader2, Download, Camera } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,18 @@ const Dashboard = () => {
   const [tgProfile, setTgProfile] = useState<any>(null);
   const [tgGenerations, setTgGenerations] = useState<Generation[]>([]);
   const [tgPayments, setTgPayments] = useState<Payment[]>([]);
-  const [tgTab, setTgTab] = useState<"home" | "history" | "payments">("home");
+  const [tgTab, setTgTab] = useState<"generate" | "history" | "payments">("generate");
+  
+  // Generate state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const previewUrl = useMemo(() => {
+    if (uploadedFile) return URL.createObjectURL(uploadedFile);
+    return null;
+  }, [uploadedFile]);
 
   const navigate = useNavigate();
 
@@ -166,7 +177,7 @@ const Dashboard = () => {
 
       <div className="shrink-0 flex border-b border-border bg-card">
         {[
-          { id: "home" as const, label: "Bosh sahifa", icon: Sparkles },
+          { id: "generate" as const, label: "Yaratish", icon: Camera },
           { id: "history" as const, label: "Tarix", icon: ImageIcon },
           { id: "payments" as const, label: "To'lovlar", icon: Wallet },
         ].map(t => (
@@ -184,40 +195,22 @@ const Dashboard = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {tgTab === "home" && (
-          <div className="p-4 space-y-4">
-            <div className="rounded-xl bg-card border border-border p-4 text-center">
-              <p className="text-sm text-muted-foreground">Salom,</p>
-              <p className="font-display font-bold text-foreground text-lg">
-                {tgProfile?.first_name || telegramUser?.first_name || "Foydalanuvchi"} 👋
-              </p>
-              <div className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/10">
-                <CreditCard className="h-4 w-4 text-primary" />
-                <span className="text-primary font-bold text-lg">{tgProfile?.credits_remaining ?? 0}</span>
-                <span className="text-primary/70 text-sm">kredit</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-card border border-border p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{tgGenerations.length}</p>
-                <p className="text-xs text-muted-foreground">Jami rasmlar</p>
-              </div>
-              <div className="rounded-xl bg-card border border-border p-3 text-center">
-                <p className="text-xl font-bold text-foreground">
-                  {tgGenerations.filter(g => g.status === "completed").length}
-                </p>
-                <p className="text-xs text-muted-foreground">Tayyor</p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-card border border-border p-4">
-              <p className="text-sm font-semibold text-foreground mb-3">Qanday ishlaydi?</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>📸 Botga mahsulot rasmini yuboring</p>
-                <p>🤖 AI professional darajada qayta ishlaydi</p>
-                <p>✨ Tayyor rasmni oling — 1 kredit</p>
-              </div>
-            </div>
-          </div>
+        {tgTab === "generate" && (
+          <TelegramGenerateTab
+            telegramId={telegramUser!.id}
+            credits={tgProfile?.credits_remaining ?? 0}
+            firstName={tgProfile?.first_name || telegramUser?.first_name}
+            uploadedFile={uploadedFile}
+            setUploadedFile={setUploadedFile}
+            processing={processing}
+            setProcessing={setProcessing}
+            resultUrl={resultUrl}
+            setResultUrl={setResultUrl}
+            fileInputRef={fileInputRef}
+            previewUrl={previewUrl}
+            onCreditsUpdate={(newCredits: number) => setTgProfile((p: any) => p ? { ...p, credits_remaining: newCredits } : p)}
+            onGenerationDone={(gen: Generation) => setTgGenerations(prev => [gen, ...prev])}
+          />
         )}
 
         {tgTab === "history" && (
@@ -450,6 +443,226 @@ const PartnerWorkspace = ({
       </div>
 
       <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
+    </div>
+  );
+};
+
+// ==================== Telegram Generate Tab ====================
+const TelegramGenerateTab = ({
+  telegramId, credits, firstName, uploadedFile, setUploadedFile,
+  processing, setProcessing, resultUrl, setResultUrl,
+  fileInputRef, previewUrl, onCreditsUpdate, onGenerationDone,
+}: {
+  telegramId: number;
+  credits: number;
+  firstName?: string;
+  uploadedFile: File | null;
+  setUploadedFile: (f: File | null) => void;
+  processing: boolean;
+  setProcessing: (v: boolean) => void;
+  resultUrl: string | null;
+  setResultUrl: (v: string | null) => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  previewUrl: string | null;
+  onCreditsUpdate: (n: number) => void;
+  onGenerationDone: (g: Generation) => void;
+}) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Rasm juda katta (max 10MB)");
+      return;
+    }
+    setUploadedFile(file);
+    setResultUrl(null);
+  };
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleGenerate = async () => {
+    if (!uploadedFile || credits <= 0) return;
+    setProcessing(true);
+    try {
+      const base64 = await fileToBase64(uploadedFile);
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
+      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_id: telegramId,
+          image_base64: base64,
+          scene_type: "studio",
+          model_type: "without-model",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Xatolik yuz berdi");
+        return;
+      }
+      setResultUrl(data.resultUrl);
+      onCreditsUpdate(data.creditsRemaining);
+      onGenerationDone({
+        id: data.generationId,
+        result_url: data.resultUrl,
+        original_url: data.originalUrl,
+        marketplace: "Web App / Studio",
+        status: "completed",
+        created_at: new Date().toISOString(),
+      });
+      toast.success("Rasm tayyor! ✨");
+    } catch (err: any) {
+      toast.error(err.message || "Xatolik yuz berdi");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReset = () => {
+    setUploadedFile(null);
+    setResultUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDownload = async () => {
+    if (!resultUrl) return;
+    try {
+      const response = await fetch(resultUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `infografix-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Yuklab olishda xatolik");
+    }
+  };
+
+  // Processing state
+  if (processing) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+        <p className="font-display font-bold text-foreground text-lg">Qayta ishlanmoqda...</p>
+        <p className="text-xs text-muted-foreground mt-2">30-60 soniya kuting</p>
+        <div className="mt-4 space-y-1 text-left text-xs text-muted-foreground">
+          <p>✅ Rasm tahlil qilinmoqda</p>
+          <p>✅ Studio sahna yaratilmoqda</p>
+          <p>✅ Professional yoritish qo'shilmoqda</p>
+          <p>✅ Sifat tekshirilmoqda</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Result state
+  if (resultUrl) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex">
+            <div className="w-1/2 border-r border-border bg-muted flex items-center justify-center p-2">
+              {previewUrl && <img src={previewUrl} alt="Original" className="max-h-40 object-contain rounded-lg" />}
+            </div>
+            <div className="w-1/2 flex items-center justify-center p-2">
+              <img src={resultUrl} alt="Natija" className="max-h-40 object-contain rounded-lg" />
+            </div>
+          </div>
+          <div className="flex border-t border-border text-[10px] font-medium">
+            <div className="w-1/2 text-center py-1.5 text-muted-foreground border-r border-border">Asl rasm</div>
+            <div className="w-1/2 text-center py-1.5 text-primary">AI natija</div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={handleDownload}>
+            <Download className="mr-2 h-4 w-4" />
+            Yuklab olish
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={handleReset}>
+            Yangi rasm
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Upload state
+  return (
+    <div className="p-4 space-y-4">
+      {/* Welcome + credits */}
+      <div className="rounded-xl bg-card border border-border p-3 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">Salom, <span className="font-bold text-foreground">{firstName || "Foydalanuvchi"}</span></p>
+        </div>
+        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
+          <CreditCard className="h-3 w-3" />
+          {credits} kredit
+        </div>
+      </div>
+
+      {/* Upload area */}
+      <label className="block cursor-pointer">
+        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors ${
+          uploadedFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/30 bg-card"
+        }`}>
+          {uploadedFile && previewUrl ? (
+            <div>
+              <img src={previewUrl} alt="Preview" className="max-h-40 mx-auto rounded-lg mb-3 object-contain" />
+              <p className="font-medium text-foreground text-sm">{uploadedFile.name}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
+            </div>
+          ) : (
+            <div>
+              <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+              <p className="font-medium text-foreground text-sm">Mahsulot rasmini yuklang</p>
+              <p className="text-[10px] text-muted-foreground mt-1">JPG, PNG, WebP • max 10MB</p>
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".jpg,.jpeg,.png,.webp"
+          onChange={handleFileChange}
+        />
+      </label>
+
+      {/* Generate button */}
+      {uploadedFile && (
+        <Button
+          className="w-full bg-primary hover:bg-primary/90"
+          size="lg"
+          onClick={handleGenerate}
+          disabled={credits <= 0}
+        >
+          <Sparkles className="mr-2 h-5 w-5" />
+          {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
+        </Button>
+      )}
+
+      {/* How it works */}
+      {!uploadedFile && (
+        <div className="rounded-xl bg-card border border-border p-4">
+          <p className="text-sm font-semibold text-foreground mb-2">Qanday ishlaydi?</p>
+          <div className="space-y-1.5 text-xs text-muted-foreground">
+            <p>📸 Mahsulot rasmini yuklang</p>
+            <p>🤖 AI professional darajada qayta ishlaydi</p>
+            <p>✨ Tayyor rasmni yuklab oling — 1 kredit</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
