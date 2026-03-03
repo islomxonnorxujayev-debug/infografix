@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Plus, ImageIcon, CreditCard, LogOut } from "lucide-react";
+import { Sparkles, Plus, ImageIcon, CreditCard, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAdmin } from "@/hooks/useAdmin";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { t } = useLanguage();
+  const { isAdmin } = useAdmin();
   const [credits, setCredits] = useState<number | null>(null);
   const [generations, setGenerations] = useState<any[]>([]);
 
@@ -35,6 +37,14 @@ const Dashboard = () => {
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <LanguageSwitcher />
+            {isAdmin && (
+              <Button variant="outline" size="sm" asChild className="text-xs px-2 sm:px-3">
+                <Link to="/admin">
+                  <Shield className="h-3.5 w-3.5 mr-1" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              </Button>
+            )}
             <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
               <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {credits !== null ? `${credits}` : "..."}
