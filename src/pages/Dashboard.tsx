@@ -110,7 +110,7 @@ const Dashboard = () => {
     }
   };
 
-  // Not in Telegram context — simple landing
+  // Not in Telegram context — Partner workspace
   if (!loading && !telegramUser) {
     return (
       <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
@@ -125,9 +125,21 @@ const Dashboard = () => {
             </button>
           </div>
         </header>
-        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
-          <h1 className="font-display text-xl font-bold text-foreground">Infografix AI</h1>
-          <p className="text-muted-foreground text-sm text-center">Telegram bot orqali oching</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-bold text-foreground mb-2">Infografix AI</h1>
+            <p className="text-muted-foreground text-sm">Mahsulot rasmlarini professional darajada qayta ishlang</p>
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Button className="w-full bg-primary hover:bg-primary/90" size="lg" onClick={() => navigate("/generate")}>
+              <ImageIcon className="mr-2 h-5 w-5" />
+              Rasm yaratish
+            </Button>
+            <Button variant="outline" className="w-full" size="lg" onClick={() => navigate("/balance")}>
+              <CreditCard className="mr-2 h-5 w-5" />
+              Balans to'ldirish
+            </Button>
+          </div>
         </div>
         <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
       </div>
