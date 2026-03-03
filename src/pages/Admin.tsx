@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Users, ImageIcon, CreditCard, Settings, ArrowLeft, Plus, Minus, Search } from "lucide-react";
+import { Sparkles, Users, ImageIcon, CreditCard, Settings, ArrowLeft, Plus, Minus, Search, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,12 +27,25 @@ interface Generation {
   created_at: string;
 }
 
+interface PaymentRequest {
+  id: string;
+  user_id: string;
+  package_name: string;
+  credits: number;
+  amount: string;
+  screenshot_url: string | null;
+  status: string;
+  admin_note: string | null;
+  created_at: string;
+}
+
 const Admin = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [tab, setTab] = useState<"users" | "generations" | "finance" | "plans">("users");
+  const [tab, setTab] = useState<"payments" | "users" | "generations" | "finance">("payments");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +55,7 @@ const Admin = () => {
 
   const loadData = async () => {
     setLoading(true);
-    if (tab === "users" || tab === "finance" || tab === "plans") {
+    if (tab === "users" || tab === "finance") {
       const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
       if (data) setProfiles(data);
     }
@@ -50,7 +63,49 @@ const Admin = () => {
       const { data } = await supabase.from("generations").select("*").order("created_at", { ascending: false }).limit(200);
       if (data) setGenerations(data);
     }
+    if (tab === "payments") {
+      const { data } = await supabase.from("payment_requests").select("*").order("created_at", { ascending: false });
+      if (data) setPaymentRequests(data as PaymentRequest[]);
+      // Also load profiles for email lookup
+      const { data: profs } = await supabase.from("profiles").select("*");
+      if (profs) setProfiles(profs);
+    }
     setLoading(false);
+  };
+
+  const getEmail = (userId: string) => {
+    return profiles.find(p => p.user_id === userId)?.email || userId.slice(0, 8) + "...";
+  };
+
+  const approvePayment = async (req: PaymentRequest) => {
+    // Update payment status
+    const { error } = await supabase
+      .from("payment_requests")
+      .update({ status: "approved" })
+      .eq("id", req.id);
+    if (error) { toast.error("Xatolik: " + error.message); return; }
+
+    // Add credits to user
+    const profile = profiles.find(p => p.user_id === req.user_id);
+    if (profile) {
+      await supabase
+        .from("profiles")
+        .update({ credits_remaining: profile.credits_remaining + req.credits })
+        .eq("user_id", req.user_id);
+    }
+
+    toast.success(`${req.credits} kredit qo'shildi!`);
+    loadData();
+  };
+
+  const rejectPayment = async (req: PaymentRequest) => {
+    const { error } = await supabase
+      .from("payment_requests")
+      .update({ status: "rejected" })
+      .eq("id", req.id);
+    if (error) { toast.error("Xatolik"); return; }
+    toast.success("Rad etildi");
+    loadData();
   };
 
   const updateCredits = async (userId: string, delta: number) => {
@@ -63,28 +118,17 @@ const Admin = () => {
     toast.success(`Kreditlar: ${newCredits}`);
   };
 
-  const updatePlan = async (userId: string, plan: string) => {
-    const planCredits: Record<string, number> = { free: 3, basic: 50, pro: 999, premium: 999 };
-    const { error } = await supabase.from("profiles").update({ plan, credits_remaining: planCredits[plan] || 3 }).eq("user_id", userId);
-    if (error) { toast.error("Xatolik"); return; }
-    setProfiles(prev => prev.map(p => p.user_id === userId ? { ...p, plan, credits_remaining: planCredits[plan] || 3 } : p));
-    toast.success(`Tarif: ${plan}`);
-  };
-
   const filteredProfiles = profiles.filter(p =>
     !search || (p.email || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalCreditsUsed = profiles.reduce((sum, p) => {
-    const initial: Record<string, number> = { free: 3, basic: 50, pro: 999, premium: 999 };
-    return sum + Math.max(0, (initial[p.plan] || 3) - p.credits_remaining);
-  }, 0);
+  const pendingPayments = paymentRequests.filter(r => r.status === "pending");
 
   const tabs = [
+    { id: "payments" as const, label: `To'lovlar${pendingPayments.length ? ` (${pendingPayments.length})` : ""}`, icon: CreditCard },
     { id: "users" as const, label: "Foydalanuvchilar", icon: Users },
     { id: "generations" as const, label: "Generatsiyalar", icon: ImageIcon },
-    { id: "finance" as const, label: "Moliya", icon: CreditCard },
-    { id: "plans" as const, label: "Tariflar", icon: Settings },
+    { id: "finance" as const, label: "Moliya", icon: Settings },
   ];
 
   return (
@@ -104,7 +148,6 @@ const Admin = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {tabs.map(t => (
             <button
@@ -119,6 +162,51 @@ const Admin = () => {
             </button>
           ))}
         </div>
+
+        {/* Payments Tab */}
+        {tab === "payments" && (
+          <div className="space-y-3">
+            {paymentRequests.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12">To'lov so'rovlari yo'q</p>
+            ) : (
+              paymentRequests.map(req => (
+                <div key={req.id} className={`rounded-xl border bg-card p-4 ${req.status === "pending" ? "border-yellow-500/30" : "border-border"}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {req.status === "pending" && <Clock className="h-4 w-4 text-yellow-500 shrink-0" />}
+                        {req.status === "approved" && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />}
+                        {req.status === "rejected" && <XCircle className="h-4 w-4 text-red-500 shrink-0" />}
+                        <span className="font-medium text-foreground text-sm">{req.package_name}</span>
+                        <span className="text-xs text-muted-foreground">• {req.amount} so'm</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {getEmail(req.user_id)} • {new Date(req.created_at).toLocaleString()} • {req.credits} kredit
+                      </p>
+                    </div>
+
+                    {req.screenshot_url && (
+                      <a href={req.screenshot_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                        <img src={req.screenshot_url} alt="Screenshot" className="w-16 h-16 rounded-lg object-cover border border-border" />
+                      </a>
+                    )}
+
+                    {req.status === "pending" && (
+                      <div className="flex gap-2 shrink-0">
+                        <Button size="sm" className="gradient-primary border-0" onClick={() => approvePayment(req)}>
+                          <CheckCircle className="h-4 w-4 mr-1" /> Tasdiqlash
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => rejectPayment(req)}>
+                          <XCircle className="h-4 w-4 mr-1" /> Rad
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         {/* Users Tab */}
         {tab === "users" && (
@@ -151,12 +239,7 @@ const Admin = () => {
                     <tr key={p.id} className="border-t border-border hover:bg-muted/50">
                       <td className="px-4 py-3 text-foreground">{p.email || "—"}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          p.plan === "premium" ? "bg-primary/10 text-primary" :
-                          p.plan === "pro" ? "bg-accent/10 text-accent" :
-                          p.plan === "basic" ? "bg-secondary text-secondary-foreground" :
-                          "bg-muted text-muted-foreground"
-                        }`}>{p.plan}</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{p.plan}</span>
                       </td>
                       <td className="px-4 py-3 text-foreground">{p.credits_remaining}</td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
@@ -195,7 +278,7 @@ const Admin = () => {
                   <div className="p-3 text-xs space-y-1">
                     <p className="text-foreground font-medium truncate">{g.marketplace || "—"}</p>
                     <p className="text-muted-foreground">User: {g.user_id.slice(0, 8)}...</p>
-                    <p className={`font-medium ${g.status === "completed" ? "text-accent" : "text-muted-foreground"}`}>{g.status}</p>
+                    <p className={`font-medium ${g.status === "completed" ? "text-primary" : "text-muted-foreground"}`}>{g.status}</p>
                     <p className="text-muted-foreground">{new Date(g.created_at).toLocaleString()}</p>
                   </div>
                 </div>
@@ -213,67 +296,15 @@ const Admin = () => {
                 <p className="text-sm text-muted-foreground mt-1">Jami foydalanuvchilar</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-6 text-center">
-                <p className="text-3xl font-display font-bold text-primary">{totalCreditsUsed}</p>
-                <p className="text-sm text-muted-foreground mt-1">Ishlatilgan kreditlar</p>
+                <p className="text-3xl font-display font-bold text-primary">{paymentRequests.filter(r => r.status === "approved").length}</p>
+                <p className="text-sm text-muted-foreground mt-1">Tasdiqlangan to'lovlar</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-6 text-center">
-                <p className="text-3xl font-display font-bold text-accent">{profiles.filter(p => p.plan !== "free").length}</p>
-                <p className="text-sm text-muted-foreground mt-1">Pullik foydalanuvchilar</p>
+                <p className="text-3xl font-display font-bold text-foreground">
+                  {paymentRequests.filter(r => r.status === "approved").reduce((s, r) => s + parseInt(r.amount || "0"), 0).toLocaleString()} so'm
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Jami daromad</p>
               </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h3 className="font-display font-bold text-foreground mb-4">Tariflar bo'yicha taqsimot</h3>
-              {["free", "basic", "pro", "premium"].map(plan => {
-                const count = profiles.filter(p => p.plan === plan).length;
-                const pct = profiles.length ? Math.round(count / profiles.length * 100) : 0;
-                return (
-                  <div key={plan} className="flex items-center gap-3 mb-3">
-                    <span className="text-sm font-medium text-foreground w-20 capitalize">{plan}</span>
-                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full gradient-primary transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="text-sm text-muted-foreground w-16 text-right">{count} ({pct}%)</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Plans Tab */}
-        {tab === "plans" && (
-          <div>
-            <p className="text-sm text-muted-foreground mb-4">Foydalanuvchi tarifini o'zgartiring</p>
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Joriy tarif</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">O'zgartirish</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {profiles.map(p => (
-                    <tr key={p.id} className="border-t border-border">
-                      <td className="px-4 py-3 text-foreground">{p.email || "—"}</td>
-                      <td className="px-4 py-3 capitalize text-foreground">{p.plan}</td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={p.plan}
-                          onChange={e => updatePlan(p.user_id, e.target.value)}
-                          className="px-2 py-1 rounded border border-input bg-card text-foreground text-sm"
-                        >
-                          <option value="free">Free</option>
-                          <option value="basic">Basic</option>
-                          <option value="pro">Pro</option>
-                          <option value="premium">Premium</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
