@@ -82,24 +82,16 @@ const Admin = () => {
   };
 
   const approvePayment = async (req: PaymentRequest) => {
-    const { error } = await supabase
-      .from("payment_requests")
-      .update({ status: "approved" })
-      .eq("id", req.id);
+    const { data, error } = await supabase.rpc("approve_payment", {
+      _payment_id: req.id,
+    });
     if (error) { toast.error("Xatolik: " + error.message); return; }
-
-    const profile = profiles.find(p =>
-      (req.profile_id && p.id === req.profile_id) ||
-      (req.telegram_id && p.telegram_id === req.telegram_id)
-    );
-    if (profile) {
-      await supabase
-        .from("profiles")
-        .update({ credits_remaining: profile.credits_remaining + req.credits })
-        .eq("id", profile.id);
+    const result = data as { success: boolean; error?: string; credits_added?: number; new_balance?: number };
+    if (!result.success) {
+      toast.error(result.error || "Xatolik");
+      return;
     }
-
-    toast.success(`✅ ${req.credits} kredit qo'shildi!`);
+    toast.success(`✅ ${result.credits_added} kredit qo'shildi! Balans: ${result.new_balance}`);
     loadData();
   };
 

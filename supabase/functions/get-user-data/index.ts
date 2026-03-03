@@ -28,7 +28,6 @@ function validateTelegramInitData(initData: string, botToken: string): { valid: 
     if (!userStr) return { valid: false };
     const user = JSON.parse(userStr);
 
-    // Check auth_date is not too old (allow 24 hours)
     const authDate = parseInt(params.get("auth_date") || "0");
     const now = Math.floor(Date.now() / 1000);
     if (now - authDate > 86400) return { valid: false };
@@ -44,33 +43,25 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { telegram_id, init_data } = body;
+    const { init_data } = body;
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 
-    // Validate: require either valid initData or at least a telegram_id
-    if (init_data && botToken) {
-      const validation = validateTelegramInitData(init_data, botToken);
-      if (!validation.valid) {
-        return new Response(JSON.stringify({ error: "Invalid Telegram authentication" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Use validated user ID
-      var validatedTelegramId = validation.userId;
-    } else if (telegram_id) {
-      // Fallback: validate telegram_id format (positive integer)
-      if (typeof telegram_id !== "number" || telegram_id <= 0 || !Number.isInteger(telegram_id)) {
-        return new Response(JSON.stringify({ error: "Invalid telegram_id" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      var validatedTelegramId = telegram_id;
-    } else {
-      return new Response(JSON.stringify({ error: "telegram_id or init_data required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // REQUIRE init_data - no fallback to raw telegram_id
+    if (!init_data || !botToken) {
+      return new Response(JSON.stringify({ error: "Telegram authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const validation = validateTelegramInitData(init_data, botToken);
+    if (!validation.valid || !validation.userId) {
+      return new Response(JSON.stringify({ error: "Invalid Telegram authentication" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const validatedTelegramId = validation.userId;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -117,7 +108,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
