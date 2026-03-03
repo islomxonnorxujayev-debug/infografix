@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const { t } = useLanguage();
+  const { isAdmin } = useAdmin();
   const [credits, setCredits] = useState<number | null>(null);
   const [generations, setGenerations] = useState<any[]>([]);
 
