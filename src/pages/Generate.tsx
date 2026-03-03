@@ -103,6 +103,7 @@ const Generate = () => {
           modelType: selectedModel,
           sceneType: selectedScene,
           generationId: genData.id,
+          language: selectedLanguage,
         },
       });
 
