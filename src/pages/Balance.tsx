@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-const CARD_NUMBER = "8600 1234 5678 9012";
+const CARD_NUMBER = "9860 1606 0533 5993";
 
 const packages = [
   { name: "1 ta rasm", credits: 1, price: "4 999", amount: "4999" },
