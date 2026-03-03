@@ -289,12 +289,18 @@ const Dashboard = () => {
         const fileExt = uploadedFile.name.split('.').pop();
         const filePath = `${user!.id}/originals/${crypto.randomUUID()}.${fileExt}`;
 
+        console.log("Step 1: Uploading to storage...");
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(filePath, uploadedFile, { cacheControl: "3600", upsert: true });
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          toast.error("Rasmni yuklashda xatolik: " + uploadError.message);
+          return;
+        }
 
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        console.log("Step 2: Creating generation record...");
 
         const { data: genData, error: genError } = await supabase
           .from("generations")
@@ -308,8 +314,13 @@ const Dashboard = () => {
           })
           .select("id")
           .single();
-        if (genError) throw genError;
+        if (genError) {
+          console.error("Generation insert error:", genError);
+          toast.error("Ma'lumot saqlashda xatolik: " + genError.message);
+          return;
+        }
 
+        console.log("Step 3: Calling AI process-image...");
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
             imageUrl: urlData.publicUrl,
@@ -318,7 +329,11 @@ const Dashboard = () => {
             generationId: genData.id,
           },
         });
-        if (fnError) throw fnError;
+        if (fnError) {
+          console.error("Function invoke error:", fnError);
+          toast.error("AI funksiya xatoligi: " + (fnError.message || JSON.stringify(fnError)));
+          return;
+        }
         if (fnData?.error) {
           toast.error(fnData.error);
           return;
