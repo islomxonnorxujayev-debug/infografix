@@ -340,7 +340,14 @@ serve(async (req) => {
 
     // Unknown
     await sendMessage(botToken, chatId,
-      "🤔 Tushunmadim.\n\n📸 Mahsulot rasmini yuboring yoki /help buyrug'ini yozing."
+      "🤔 Tushunmadim.\n\n📱 Rasm yaratish uchun quyidagi tugmani bosing yoki /help buyrug'ini yozing.",
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
+          ]]
+        }
+      }
     );
     return new Response("OK");
 
