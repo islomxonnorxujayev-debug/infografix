@@ -295,17 +295,17 @@ const Generate = () => {
                     <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Tayyor! 🎉</h2>
 
                     {/* Before / After */}
-                    <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden mb-6">
-                      <div className="flex min-h-[300px]">
-                        <div className="w-1/2 bg-muted flex items-center justify-center border-r border-border p-4">
+                    <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden mb-4 sm:mb-6">
+                      <div className="flex flex-col sm:flex-row min-h-[200px] sm:min-h-[300px]">
+                        <div className="w-full sm:w-1/2 bg-muted flex items-center justify-center border-b sm:border-b-0 sm:border-r border-border p-3 sm:p-4">
                           {previewUrl ? (
-                            <img src={previewUrl} alt="Original" className="max-h-64 object-contain rounded-lg" />
+                            <img src={previewUrl} alt="Original" className="max-h-48 sm:max-h-64 object-contain rounded-lg" />
                           ) : (
-                            <ImageIcon className="h-16 w-16 text-muted-foreground" />
+                            <ImageIcon className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground" />
                           )}
                         </div>
-                        <div className="w-1/2 flex items-center justify-center p-4 bg-card">
-                          <img src={resultUrl} alt="Result" className="max-h-64 object-contain rounded-lg" />
+                        <div className="w-full sm:w-1/2 flex items-center justify-center p-3 sm:p-4 bg-card">
+                          <img src={resultUrl} alt="Result" className="max-h-48 sm:max-h-64 object-contain rounded-lg" />
                         </div>
                       </div>
                       <div className="flex border-t border-border text-xs font-medium">
