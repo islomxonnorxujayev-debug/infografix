@@ -223,12 +223,12 @@ const Generate = () => {
 
             {/* Step 1: Marketplace */}
             {currentStep === 1 && (
-              <div>
-                <h2 className="font-display text-3xl font-bold text-foreground mb-2 text-center">Marketplace tanlang</h2>
-                <p className="text-muted-foreground mb-8 text-center">
-                  AI avtomatik ravishda fonni olib tashlaydi, professional yorug'lik qo'shadi va marketplace talablariga moslashtiradi
+              <div className="px-2">
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2 text-center">Marketplace tanlang</h2>
+                <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 text-center">
+                  AI mahsulot kategoriyasiga qarab professional reklama rasm yaratadi
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
                   {marketplaces.map((mp, i) => (
                     <button
                       key={mp.name}
