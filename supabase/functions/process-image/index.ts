@@ -13,8 +13,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -24,33 +23,29 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
-      console.error("Missing env vars:", { url: !!supabaseUrl, serviceKey: !!supabaseServiceKey, anonKey: !!supabaseAnonKey });
+      console.error("Missing env vars");
       return new Response(JSON.stringify({ error: "Server configuration error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!lovableApiKey) {
       return new Response(JSON.stringify({ error: "AI API key not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Auth check
+    // Auth
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Invalid auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Admin client for DB operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check credits
@@ -61,45 +56,55 @@ serve(async (req) => {
       .single();
 
     if (!profile || profile.credits_remaining <= 0) {
-      return new Response(JSON.stringify({ error: "No credits remaining. Please upgrade your plan." }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Kredit tugadi. Iltimos, tarifingizni yangilang." }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { imageUrl, marketplace, stylePreset, enhancements, generationId } = await req.json();
+    const { imageUrl, marketplace, marketplaceRatio, marketplaceSize, generationId } = await req.json();
 
     if (!imageUrl || !generationId) {
       return new Response(JSON.stringify({ error: "Missing imageUrl or generationId" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Build the AI prompt
-    const enabledEnhancements = Object.entries(enhancements || {})
-      .filter(([_, v]) => v)
-      .map(([k]) => k);
+    // Build professional marketplace-ready prompt
+    const prompt = `You are a world-class e-commerce product photographer and photo editor. Transform this product image into a professional, marketplace-ready product photo.
 
-    const prompt = `You are a professional product photography AI. Transform this product image into a high-quality, marketplace-ready professional product photo.
+CRITICAL REQUIREMENTS — follow ALL of these:
 
-Style: ${stylePreset || "Clean White Studio"}
-Target marketplace: ${marketplace || "Universal"}
+1. BACKGROUND: Remove the existing background completely. Replace with a pure clean white background (#FFFFFF).
 
-Requirements:
-- Remove the original background completely
-- Apply "${stylePreset || "Clean White Studio"}" style
-- Professional studio lighting simulation
-- Natural soft shadow generation
-- Maintain realistic product texture - NO cartoon or over-processed look
-- Commercial e-commerce photography style
-${enabledEnhancements.length > 0 ? `\nAdditional enhancements:\n${enabledEnhancements.map(e => `- ${e}`).join('\n')}` : ''}
+2. LIGHTING: Apply professional studio lighting:
+   - Main key light from upper-left (45°)
+   - Soft fill light from right side
+   - Subtle rim/edge light to separate product from background
+   - The product should look naturally lit, like in a real photo studio
 
-Create a clean, professional product photo that looks like it was taken in a real photography studio. The result must be suitable for ${marketplace || "e-commerce"} marketplace listings.`;
+3. SHADOWS: Add a natural, soft contact shadow beneath the product on the white background. The shadow should be subtle and realistic — not harsh or cartoonish.
 
-    console.log("Calling AI with prompt for generation:", generationId);
+4. PRODUCT INTEGRITY: 
+   - Keep the product EXACTLY as it is — do not change its shape, color, texture, or proportions
+   - Maintain all original details, labels, and branding
+   - The product must look photorealistic, NOT like a render or cartoon
+   - Do NOT add any text, watermarks, or logos
 
-    // Call Lovable AI with image editing
+5. COMPOSITION for ${marketplace || "e-commerce"} (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
+   - Center the product in frame
+   - Leave ~15% padding on all sides
+   - Product should fill about 70-80% of the frame
+
+6. COLOR & QUALITY:
+   - Accurate, vibrant product colors
+   - High contrast between product and white background
+   - Sharp, clean edges
+   - Professional commercial photography quality
+
+OUTPUT: A single clean product photo on white background that looks like it was shot in a professional photography studio. Ready to upload directly to ${marketplace || "any marketplace"}.`;
+
+    console.log("Calling AI for generation:", generationId, "marketplace:", marketplace);
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -123,24 +128,21 @@ Create a clean, professional product photo that looks like it was taken in a rea
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      console.error("AI error:", aiResponse.status, errText);
 
       if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "AI rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: "AI tizimi band. Bir ozdan keyin qayta urinib ko'ring." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits depleted. Please contact support." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: "AI krediti tugadi. Qo'llab-quvvatlash xizmatiga murojaat qiling." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ error: "AI processing failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "AI rasmni qayta ishlashda xatolik yuz berdi" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -148,14 +150,13 @@ Create a clean, professional product photo that looks like it was taken in a rea
     const resultImageBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!resultImageBase64) {
-      console.error("No image in AI response:", JSON.stringify(aiData).slice(0, 500));
-      return new Response(JSON.stringify({ error: "AI did not return an image. Please try again." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.error("No image in response:", JSON.stringify(aiData).slice(0, 500));
+      return new Response(JSON.stringify({ error: "AI rasm qaytarmadi. Qayta urinib ko'ring." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Upload the result image to storage
+    // Upload result
     const base64Data = resultImageBase64.replace(/^data:image\/\w+;base64,/, "");
     const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     const resultPath = `${user.id}/results/${generationId}.png`;
@@ -166,9 +167,8 @@ Create a clean, professional product photo that looks like it was taken in a rea
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
-      return new Response(JSON.stringify({ error: "Failed to save result image" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Natija rasmni saqlashda xatolik" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -197,9 +197,8 @@ Create a clean, professional product photo that looks like it was taken in a rea
     );
   } catch (e) {
     console.error("process-image error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Noma'lum xatolik" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
