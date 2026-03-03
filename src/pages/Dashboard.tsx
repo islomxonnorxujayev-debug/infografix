@@ -355,7 +355,8 @@ const Dashboard = () => {
 
         toast.success("Rasm tayyor! ✨");
       } catch (err: any) {
-        toast.error(err.message || "Xatolik yuz berdi");
+        console.error("Generate error details:", err);
+        toast.error(err.message || "Noma'lum xatolik yuz berdi. Qayta urinib ko'ring.");
       } finally {
         setProcessing(false);
       }
