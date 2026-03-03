@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Upload, Store, Download, Loader2, ImageIcon } from "lucide-react";
+import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,27 +9,33 @@ import { toast } from "sonner";
 
 const steps = [
   { label: "Yuklash", icon: Upload },
-  { label: "Marketplace", icon: Store },
+  { label: "Sozlash", icon: Settings },
   { label: "Natija", icon: Download },
 ];
 
-const marketplaces = [
-  { name: "Uzum Market", ratio: "3:4", size: "1080×1440", emoji: "🛒" },
-  { name: "Wildberries", ratio: "1:1", size: "1000×1000", emoji: "🟣" },
-  { name: "Ozon", ratio: "3:4", size: "1080×1440", emoji: "🔵" },
-  { name: "Amazon", ratio: "4:5", size: "1600×2000", emoji: "📦" },
-  { name: "Universal", ratio: "1:1", size: "1080×1080", emoji: "🌐" },
+const modelOptions = [
+  { id: "with-model", label: "Modelli", description: "Inson model bilan", icon: User },
+  { id: "without-model", label: "Modelsiz", description: "Faqat mahsulot", icon: Package },
+];
+
+const sceneOptions = [
+  { id: "nature", label: "Tabiat", description: "Tabiat fonida", icon: TreePine },
+  { id: "lifestyle", label: "Lifestyle", description: "Hayotiy muhit", icon: Home },
+  { id: "studio", label: "Studia", description: "Professional studia", icon: Camera },
+  { id: "minimalist", label: "Minimalist", description: "Oddiy va toza", icon: LayoutGrid },
+  { id: "infographic", label: "Infografika", description: "Ma'lumotli dizayn", icon: BarChart3 },
 ];
 
 const Generate = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedMarketplace, setSelectedMarketplace] = useState<number | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedScene, setSelectedScene] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
     if (uploadedFile) return URL.createObjectURL(uploadedFile);
@@ -48,7 +54,7 @@ const Generate = () => {
   };
 
   const handleProcess = async () => {
-    if (!uploadedFile || !user || selectedMarketplace === null) return;
+    if (!uploadedFile || !user || !selectedModel || !selectedScene) return;
     setProcessing(true);
     setCurrentStep(2);
 
@@ -66,16 +72,17 @@ const Generate = () => {
         .from("product-images")
         .getPublicUrl(filePath);
 
-      const mp = marketplaces[selectedMarketplace];
+      const modelLabel = modelOptions.find(m => m.id === selectedModel)?.label || "";
+      const sceneLabel = sceneOptions.find(s => s.id === selectedScene)?.label || "";
 
       const { data: genData, error: genError } = await supabase
         .from("generations")
         .insert({
           user_id: user.id,
           original_url: urlData.publicUrl,
-          marketplace: mp.name,
-          style_preset: "Professional Studio",
-          enhancements: {},
+          marketplace: `${modelLabel} / ${sceneLabel}`,
+          style_preset: selectedScene,
+          enhancements: { model: selectedModel, scene: selectedScene },
           status: "processing",
         })
         .select("id")
@@ -87,9 +94,8 @@ const Generate = () => {
       const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
         body: {
           imageUrl: urlData.publicUrl,
-          marketplace: mp.name,
-          marketplaceRatio: mp.ratio,
-          marketplaceSize: mp.size,
+          modelType: selectedModel,
+          sceneType: selectedScene,
           generationId: genData.id,
         },
       });
@@ -120,7 +126,7 @@ const Generate = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `marketplace-${generationId || "image"}.png`;
+      a.download = `product-${generationId || "image"}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -135,29 +141,32 @@ const Generate = () => {
     setUploadedFile(null);
     setResultUrl(null);
     setGenerationId(null);
-    setSelectedMarketplace(null);
+    setSelectedModel(null);
+    setSelectedScene(null);
     setCurrentStep(0);
   };
+
+  const canProceedStep1 = selectedModel !== null && selectedScene !== null;
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
+        <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4">
           <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm">Ortga</span>
+            <span className="text-sm hidden sm:inline">Ortga</span>
           </Link>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <span className="font-display font-semibold text-foreground">Yangi rasm</span>
+            <span className="font-display font-semibold text-foreground text-sm sm:text-base">Yangi rasm</span>
           </div>
-          <div />
+          <div className="w-10" />
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8 sm:mb-10">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6 sm:mb-10">
           {steps.map((step, i) => (
             <div key={step.label} className="flex items-center gap-1 sm:gap-2">
               <div className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
@@ -188,21 +197,21 @@ const Generate = () => {
             {/* Step 0: Upload */}
             {currentStep === 0 && (
               <div className="text-center px-2">
-                <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2">Mahsulot rasmini yuklang</h2>
-                <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">JPG, PNG yoki WEBP — 5MB gacha</p>
-                <label className="block max-w-sm sm:max-w-md mx-auto cursor-pointer">
+                <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-2">Mahsulot rasmini yuklang</h2>
+                <p className="text-sm text-muted-foreground mb-6">JPG, PNG yoki WEBP — 5MB gacha</p>
+                <label className="block max-w-sm mx-auto cursor-pointer">
                   <div className="border-2 border-dashed border-border rounded-2xl p-6 sm:p-10 hover:border-primary/40 transition-colors bg-card">
                     {uploadedFile && previewUrl ? (
                       <div className="text-center">
                         <img src={previewUrl} alt="Preview" className="max-h-48 mx-auto rounded-lg mb-4 object-contain" />
-                        <p className="font-medium text-foreground">{uploadedFile.name}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                        <p className="font-medium text-foreground text-sm">{uploadedFile.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
                       </div>
                     ) : (
                       <div>
-                        <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="font-medium text-foreground">Bosing yoki rasmni tashlang</p>
-                        <p className="text-sm text-muted-foreground mt-1">Mahsulot surati</p>
+                        <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3" />
+                        <p className="font-medium text-foreground text-sm sm:text-base">Bosing yoki rasmni tashlang</p>
+                        <p className="text-xs text-muted-foreground mt-1">Mahsulot surati</p>
                       </div>
                     )}
                   </div>
@@ -215,49 +224,76 @@ const Generate = () => {
                     onClick={() => setCurrentStep(1)}
                   >
                     Davom etish
-                    <Store className="ml-2 h-4 w-4" />
+                    <Settings className="ml-2 h-4 w-4" />
                   </Button>
                 )}
               </div>
             )}
 
-            {/* Step 1: Marketplace */}
+            {/* Step 1: Options */}
             {currentStep === 1 && (
               <div className="px-2">
-                <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2 text-center">Marketplace tanlang</h2>
-                <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 text-center">
-                  AI mahsulot kategoriyasiga qarab professional reklama rasm yaratadi
+                <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-1 text-center">Sozlamalarni tanlang</h2>
+                <p className="text-sm text-muted-foreground mb-6 sm:mb-8 text-center">
+                  AI tanlangan sozlamalarga qarab premium rasm yaratadi
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
-                  {marketplaces.map((mp, i) => (
-                    <button
-                      key={mp.name}
-                      onClick={() => setSelectedMarketplace(i)}
-                      className={`p-4 sm:p-6 rounded-2xl border text-center transition-all ${
-                        selectedMarketplace === i
-                          ? "border-primary bg-primary/5 shadow-glow"
-                          : "border-border bg-card hover:border-primary/20"
-                      }`}
-                    >
-                      <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">{mp.emoji}</div>
-                      <div className="font-display font-bold text-foreground text-sm sm:text-base">{mp.name}</div>
-                      <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{mp.ratio} • {mp.size}</div>
-                    </button>
-                  ))}
+
+                {/* Model selection */}
+                <div className="mb-6 sm:mb-8">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">👤 Model turi</h3>
+                  <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+                    {modelOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSelectedModel(opt.id)}
+                        className={`p-4 sm:p-5 rounded-2xl border text-center transition-all ${
+                          selectedModel === opt.id
+                            ? "border-primary bg-primary/5 shadow-glow"
+                            : "border-border bg-card hover:border-primary/20"
+                        }`}
+                      >
+                        <opt.icon className={`h-6 w-6 mx-auto mb-2 ${selectedModel === opt.id ? "text-primary" : "text-muted-foreground"}`} />
+                        <div className="font-display font-bold text-foreground text-sm">{opt.label}</div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{opt.description}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Preview of selected image */}
+                {/* Scene selection */}
+                <div className="mb-6 sm:mb-8">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">🎬 Holat / Fon</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto">
+                    {sceneOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSelectedScene(opt.id)}
+                        className={`p-3 sm:p-4 rounded-2xl border text-center transition-all ${
+                          selectedScene === opt.id
+                            ? "border-primary bg-primary/5 shadow-glow"
+                            : "border-border bg-card hover:border-primary/20"
+                        }`}
+                      >
+                        <opt.icon className={`h-5 w-5 mx-auto mb-1.5 ${selectedScene === opt.id ? "text-primary" : "text-muted-foreground"}`} />
+                        <div className="font-display font-bold text-foreground text-xs sm:text-sm">{opt.label}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preview */}
                 {previewUrl && (
-                  <div className="mt-8 flex justify-center">
-                    <div className="rounded-xl border border-border bg-card p-3 max-w-[200px]">
-                      <img src={previewUrl} alt="Your image" className="rounded-lg object-contain max-h-32 mx-auto" />
-                      <p className="text-xs text-muted-foreground text-center mt-2">Sizning rasmingiz</p>
+                  <div className="flex justify-center mb-6">
+                    <div className="rounded-xl border border-border bg-card p-3 max-w-[160px]">
+                      <img src={previewUrl} alt="Your image" className="rounded-lg object-contain max-h-28 mx-auto" />
+                      <p className="text-[10px] text-muted-foreground text-center mt-2">Sizning rasmingiz</p>
                     </div>
                   </div>
                 )}
 
-                {selectedMarketplace !== null && (
-                  <div className="text-center mt-8">
+                {canProceedStep1 && (
+                  <div className="text-center">
                     <Button
                       size="lg"
                       className="gradient-primary border-0 px-6 sm:px-10 text-sm sm:text-base"
@@ -268,7 +304,7 @@ const Generate = () => {
                       AI bilan tayyorlash
                     </Button>
                     <p className="text-xs text-muted-foreground mt-3">
-                      ⚡ Fon olib tashlash • Professional yorug'lik • Soya • Marketplace optimizatsiya
+                      📐 1080×1440 • ⚡ Professional sifat
                     </p>
                   </div>
                 )}
@@ -279,29 +315,28 @@ const Generate = () => {
             {currentStep === 2 && (
               <div className="text-center">
                 {processing ? (
-                  <div className="py-16">
-                    <Loader2 className="h-16 w-16 text-primary mx-auto mb-6 animate-spin" />
-                    <h2 className="font-display text-2xl font-bold text-foreground mb-2">AI rasmni tayyorlamoqda...</h2>
-                    <p className="text-muted-foreground">Professional rasm tayyorlanmoqda. 15-30 soniya kuting.</p>
-                    <div className="mt-6 max-w-xs mx-auto space-y-2 text-left text-sm text-muted-foreground">
-                      <p>✅ Fon olib tashlanmoqda</p>
-                      <p>✅ Professional yorug'lik qo'shilmoqda</p>
-                      <p>✅ Tabiiy soya yaratilmoqda</p>
-                      <p>✅ Marketplace o'lchamiga moslashtirilmoqda</p>
+                  <div className="py-12 sm:py-16">
+                    <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-primary mx-auto mb-4 sm:mb-6 animate-spin" />
+                    <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">AI rasmni tayyorlamoqda...</h2>
+                    <p className="text-sm text-muted-foreground">Professional rasm tayyorlanmoqda. 15-30 soniya kuting.</p>
+                    <div className="mt-4 sm:mt-6 max-w-xs mx-auto space-y-1.5 text-left text-xs sm:text-sm text-muted-foreground">
+                      <p>✅ Mahsulot tahlil qilinmoqda</p>
+                      <p>✅ {selectedScene === "nature" ? "Tabiat foni" : selectedScene === "lifestyle" ? "Lifestyle muhit" : selectedScene === "studio" ? "Studia foni" : selectedScene === "infographic" ? "Infografika" : "Minimalist fon"} yaratilmoqda</p>
+                      <p>✅ {selectedModel === "with-model" ? "Model qo'shilmoqda" : "Professional kompozitsiya"}</p>
+                      <p>✅ 1080×1440 o'lchamga moslashtirilmoqda</p>
                     </div>
                   </div>
                 ) : resultUrl ? (
                   <div>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Tayyor! 🎉</h2>
+                    <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Tayyor! 🎉</h2>
 
-                    {/* Before / After */}
                     <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden mb-4 sm:mb-6">
                       <div className="flex flex-col sm:flex-row min-h-[200px] sm:min-h-[300px]">
                         <div className="w-full sm:w-1/2 bg-muted flex items-center justify-center border-b sm:border-b-0 sm:border-r border-border p-3 sm:p-4">
                           {previewUrl ? (
                             <img src={previewUrl} alt="Original" className="max-h-48 sm:max-h-64 object-contain rounded-lg" />
                           ) : (
-                            <ImageIcon className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground" />
+                            <ImageIcon className="h-12 w-12 text-muted-foreground" />
                           )}
                         </div>
                         <div className="w-full sm:w-1/2 flex items-center justify-center p-3 sm:p-4 bg-card">
@@ -314,7 +349,7 @@ const Generate = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Button size="lg" className="gradient-primary border-0 px-6 sm:px-8 w-full sm:w-auto" onClick={handleDownload}>
                         <Download className="mr-2 h-5 w-5" />
                         Yuklab olish
@@ -323,14 +358,12 @@ const Generate = () => {
                         Yangi rasm
                       </Button>
                     </div>
-                    {selectedMarketplace !== null && (
-                      <p className="text-sm text-muted-foreground mt-4">
-                        {marketplaces[selectedMarketplace].name} uchun optimallashtirilgan • {marketplaces[selectedMarketplace].ratio} • {marketplaces[selectedMarketplace].size}
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-4">
+                      1080×1440 • {modelOptions.find(m => m.id === selectedModel)?.label} • {sceneOptions.find(s => s.id === selectedScene)?.label}
+                    </p>
                   </div>
                 ) : (
-                  <div className="py-16">
+                  <div className="py-12 sm:py-16">
                     <p className="text-muted-foreground">Xatolik yuz berdi. Qayta urinib ko'ring.</p>
                     <Button variant="outline" className="mt-4" onClick={handleNewImage}>Qayta boshlash</Button>
                   </div>
