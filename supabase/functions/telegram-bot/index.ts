@@ -129,7 +129,13 @@ serve(async (req) => {
     const telegramId = message.from.id;
     const username = message.from.username;
     const firstName = message.from.first_name;
-    const text = message.text || "";
+    const text = (message.text || "").slice(0, 500); // Limit text length
+    
+    // Validate telegram ID
+    if (!isValidTelegramId(telegramId)) {
+      return new Response("OK");
+    }
+    
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Auto-register / find user
