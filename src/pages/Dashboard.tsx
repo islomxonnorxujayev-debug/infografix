@@ -72,7 +72,9 @@ const Dashboard = () => {
     const user = tg?.initDataUnsafe?.user;
     if (user?.id) {
       setTelegramUser(user);
-      loadTelegramData(user.id);
+      // Pass initData for server-side validation
+      const initData = (tg as any)?.initData || "";
+      loadTelegramData(user.id, initData);
     } else {
       setTgLoading(false);
     }
