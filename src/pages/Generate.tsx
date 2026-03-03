@@ -290,6 +290,27 @@ const Generate = () => {
                   </div>
                 </div>
 
+                {/* Language selection */}
+                <div className="mb-6 sm:mb-8">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">🌐 Matn tili</h3>
+                  <div className="flex gap-3 justify-center max-w-xs mx-auto">
+                    {languageOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSelectedLanguage(opt.id)}
+                        className={`flex-1 p-3 sm:p-4 rounded-2xl border text-center transition-all ${
+                          selectedLanguage === opt.id
+                            ? "border-primary bg-primary/5 shadow-glow"
+                            : "border-border bg-card hover:border-primary/20"
+                        }`}
+                      >
+                        <span className="text-2xl block mb-1">{opt.flag}</span>
+                        <div className="font-display font-bold text-foreground text-xs sm:text-sm">{opt.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Preview */}
                 {previewUrl && (
                   <div className="flex justify-center mb-6">

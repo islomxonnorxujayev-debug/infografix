@@ -80,26 +80,37 @@ serve(async (req) => {
       ? `HUMAN MODEL: Include an attractive, diverse model naturally interacting with the product. The model should be wearing/holding/using/demonstrating the product in a believable way. Show genuine expression — confidence, joy, or satisfaction. Model should complement the product, not overshadow it. Professional fashion/commercial photography quality.`
       : `NO HUMAN MODEL: Do not include any person in the image. Focus entirely on the product itself. Use creative product photography techniques: floating product, dynamic angles, artistic shadows, reflections, or complementary props that enhance the product story.`;
 
+    const langLabel = language === "ru" ? "Russian" : "Uzbek";
+    const langInstruction = `LANGUAGE: ALL text overlays, badges, labels, benefit descriptions, and any written content in the image MUST be in ${langLabel}. Do not use English or any other language. Every word visible in the final image must be ${langLabel}.`;
+
     const prompt = `You are the world's top e-commerce product photographer and creative director. Create a PREMIUM promotional product image.
 
 OUTPUT: Exactly 1080x1440 pixels (3:4 portrait ratio).
 
-ANALYZE THE PRODUCT: Look at this product image carefully. Identify what it is (clothing, electronics, cosmetics, food, furniture, etc.) and design everything around making THIS specific product irresistible to buy.
+ANALYZE THE PRODUCT: Look at this product image carefully. Identify what it is (clothing, electronics, cosmetics, food, furniture, etc.) and determine its REAL-WORLD SIZE. This is critical — a phone should look phone-sized, a shoe should look shoe-sized, a lipstick should look small, furniture should look large.
 
 ${sceneInstructions[sceneType] || sceneInstructions.studio}
 
 ${modelInstructions}
 
+CRITICAL — PRODUCT SIZE & PROPORTIONS:
+- ASSESS the product's real-world dimensions accurately. A ring is tiny, a sofa is large, a bottle is medium.
+- When a human model is present, the product MUST be proportionally correct relative to the model's body. A watch should fit on a wrist, a bag should be held naturally, shoes should fit feet. NEVER make the product unnaturally large or small.
+- When no model is present, scale the product realistically against background elements (table, shelf, plants). Use environmental cues to establish correct scale.
+- Product should occupy 25-45% of the frame (NOT more) to maintain realistic proportions and leave space for the scene.
+- If the product is small (jewelry, cosmetics, phone accessories), show it at correct small scale with appropriate close-up composition rather than enlarging it unrealistically.
+
 PRODUCT PLACEMENT:
 - Extract the product cleanly from its current background
-- Place it prominently in the new scene — it should be the hero of the composition
+- Place it naturally in the new scene with correct perspective and realistic shadows/reflections
 - Apply professional studio lighting: key light, fill light, rim light for depth
 - Ensure the product colors, textures, and details are accurate and enhanced
-- Product should occupy 40-60% of the frame
+
+${langInstruction}
 
 COMMERCIAL QUALITY:
-- Add subtle text overlays in the product's language context: product name or category as elegant typography
-- Include 1-2 small benefit badges or quality indicators
+- Add subtle text overlays as elegant typography — product name or category (in ${langLabel})
+- Include 1-2 small benefit badges or quality indicators (in ${langLabel})
 - Professional color grading that matches the scene mood
 - Sharp focus on product, appropriate depth of field on background
 - The final image must look like it belongs in a premium online store listing
