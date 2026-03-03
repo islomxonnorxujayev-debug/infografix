@@ -212,8 +212,6 @@ const Dashboard = () => {
             onGenerationDone={(gen: Generation) => setTgGenerations(prev => [gen, ...prev])}
           />
         )}
-          </div>
-        )}
 
         {tgTab === "history" && (
           <div className="p-4">
