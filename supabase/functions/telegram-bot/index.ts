@@ -282,12 +282,13 @@ serve(async (req) => {
         const imageRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
         const imageBytes = new Uint8Array(await imageRes.arrayBuffer());
 
-        // Upload screenshot to storage
-        const storagePath = `payments/${telegramId}/${crypto.randomUUID()}.jpg`;
-        await supabase.storage.from("product-images").upload(storagePath, imageBytes, {
+        // Upload screenshot to PRIVATE storage bucket
+        const storagePath = `${telegramId}/${crypto.randomUUID()}.jpg`;
+        await supabase.storage.from("payment-screenshots").upload(storagePath, imageBytes, {
           contentType: "image/jpeg", upsert: true,
         });
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(storagePath);
+        // Store path reference (not public URL since bucket is private)
+        const screenshotRef = `payment-screenshots/${storagePath}`;
 
         // Create payment request
         await supabase.from("payment_requests").insert({
