@@ -1,23 +1,66 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function validateTelegramInitData(initData: string, botToken: string): { valid: boolean; userId?: number } {
+  try {
+    const params = new URLSearchParams(initData);
+    const hash = params.get("hash");
+    if (!hash) return { valid: false };
+
+    params.delete("hash");
+    const dataCheckArr = Array.from(params.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, val]) => `${key}=${val}`);
+    const dataCheckString = dataCheckArr.join("\n");
+
+    const secretKey = createHmac("sha256", "WebAppData").update(botToken).digest();
+    const checkHash = createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+    if (checkHash !== hash) return { valid: false };
+
+    const userStr = params.get("user");
+    if (!userStr) return { valid: false };
+    const user = JSON.parse(userStr);
+
+    const authDate = parseInt(params.get("auth_date") || "0");
+    const now = Math.floor(Date.now() / 1000);
+    if (now - authDate > 86400) return { valid: false };
+
+    return { valid: true, userId: user.id };
+  } catch {
+    return { valid: false };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { telegram_id, image_base64, scene_type, model_type } = await req.json();
+    const { init_data, image_base64, scene_type, model_type } = await req.json();
 
-    // Validate telegram_id
-    if (!telegram_id || typeof telegram_id !== "number" || telegram_id <= 0) {
-      return new Response(JSON.stringify({ error: "Invalid telegram_id" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+
+    // REQUIRE init_data for Telegram authentication
+    if (!init_data || !botToken) {
+      return new Response(JSON.stringify({ error: "Telegram authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const validation = validateTelegramInitData(init_data, botToken);
+    if (!validation.valid || !validation.userId) {
+      return new Response(JSON.stringify({ error: "Invalid Telegram authentication" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const telegram_id = validation.userId;
 
     if (!image_base64 || typeof image_base64 !== "string") {
       return new Response(JSON.stringify({ error: "image_base64 required" }), {
@@ -25,7 +68,6 @@ serve(async (req) => {
       });
     }
 
-    // Limit image size (~10MB base64)
     if (image_base64.length > 14_000_000) {
       return new Response(JSON.stringify({ error: "Rasm juda katta (max 10MB)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -44,7 +86,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get profile and check credits
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, credits_remaining, user_id")
@@ -81,7 +122,6 @@ serve(async (req) => {
 
     const { data: originalUrlData } = supabase.storage.from("product-images").getPublicUrl(originalPath);
 
-    // Create generation record
     const sceneType = scene_type || "studio";
     const modelType = model_type || "without-model";
 
@@ -96,7 +136,6 @@ serve(async (req) => {
       status: "processing",
     });
 
-    // Build prompt
     const sceneMap: Record<string, string> = {
       nature: "Outdoor nature: golden-hour sunlit garden. Warm tones, bokeh background.",
       lifestyle: "Lifestyle: modern apartment/cafe. Warm ambient light, rich textures.",
@@ -159,7 +198,6 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
       });
     }
 
-    // Upload result
     const resultClean = resultBase64.replace(/^data:image\/\w+;base64,/, "");
     const resultBytes = Uint8Array.from(atob(resultClean), (c) => c.charCodeAt(0));
     const resultPath = `${profile.id}/results/${genId}.png`;
@@ -169,7 +207,6 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
     });
     const { data: resultUrlData } = supabase.storage.from("product-images").getPublicUrl(resultPath);
 
-    // Update generation & credits
     await supabase.from("generations").update({
       result_url: resultUrlData.publicUrl, status: "completed"
     }).eq("id", genId);
