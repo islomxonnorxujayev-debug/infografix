@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
-const CARD_NUMBER = "8600 1234 5678 9012";
+const CARD_NUMBER = "9860 1606 0533 5993";
 
 const PACKAGES = [
   { key: "1", name: "1 ta rasm", credits: 1, price: "4 999 so'm" },
