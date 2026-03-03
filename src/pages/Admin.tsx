@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Users, ImageIcon, CreditCard, Settings, ArrowLeft, Plus, Minus, Search, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
+import { Sparkles, Users, ImageIcon, CreditCard, ArrowLeft, Plus, Minus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface Profile {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  telegram_id: number | null;
+  telegram_username: string | null;
+  first_name: string | null;
   email: string | null;
   credits_remaining: number;
   plan: string;
@@ -18,7 +20,8 @@ interface Profile {
 
 interface Generation {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  telegram_id: number | null;
   original_url: string | null;
   result_url: string | null;
   marketplace: string | null;
@@ -29,7 +32,9 @@ interface Generation {
 
 interface PaymentRequest {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  telegram_id: number | null;
+  profile_id: string | null;
   package_name: string;
   credits: number;
   amount: string;
@@ -40,7 +45,6 @@ interface PaymentRequest {
 }
 
 const Admin = () => {
-  const { t } = useLanguage();
   const { user } = useAuth();
   const [tab, setTab] = useState<"payments" | "users" | "generations" | "finance">("payments");
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -49,52 +53,66 @@ const Admin = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [tab]);
+  useEffect(() => { loadData(); }, [tab]);
 
   const loadData = async () => {
     setLoading(true);
-    if (tab === "users" || tab === "finance") {
+    if (tab === "users" || tab === "finance" || tab === "payments") {
       const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      if (data) setProfiles(data);
+      if (data) setProfiles(data as Profile[]);
     }
     if (tab === "generations") {
       const { data } = await supabase.from("generations").select("*").order("created_at", { ascending: false }).limit(200);
-      if (data) setGenerations(data);
+      if (data) setGenerations(data as Generation[]);
     }
     if (tab === "payments") {
       const { data } = await supabase.from("payment_requests").select("*").order("created_at", { ascending: false });
       if (data) setPaymentRequests(data as PaymentRequest[]);
-      // Also load profiles for email lookup
-      const { data: profs } = await supabase.from("profiles").select("*");
-      if (profs) setProfiles(profs);
     }
     setLoading(false);
   };
 
-  const getEmail = (userId: string) => {
-    return profiles.find(p => p.user_id === userId)?.email || userId.slice(0, 8) + "...";
+  const getUserDisplay = (req: PaymentRequest) => {
+    const profile = profiles.find(p =>
+      (req.profile_id && p.id === req.profile_id) ||
+      (req.telegram_id && p.telegram_id === req.telegram_id) ||
+      (req.user_id && p.user_id === req.user_id)
+    );
+    if (profile) {
+      return profile.first_name || profile.telegram_username
+        ? `${profile.first_name || ""} ${profile.telegram_username ? "@" + profile.telegram_username : ""}`.trim()
+        : profile.email || profile.id.slice(0, 8);
+    }
+    return req.telegram_id ? `TG:${req.telegram_id}` : "Noma'lum";
+  };
+
+  const getProfileDisplay = (p: Profile) => {
+    if (p.first_name || p.telegram_username) {
+      return `${p.first_name || ""} ${p.telegram_username ? "@" + p.telegram_username : ""}`.trim();
+    }
+    return p.email || p.id.slice(0, 8);
   };
 
   const approvePayment = async (req: PaymentRequest) => {
-    // Update payment status
     const { error } = await supabase
       .from("payment_requests")
       .update({ status: "approved" })
       .eq("id", req.id);
     if (error) { toast.error("Xatolik: " + error.message); return; }
 
-    // Add credits to user
-    const profile = profiles.find(p => p.user_id === req.user_id);
+    // Find profile and add credits
+    const profile = profiles.find(p =>
+      (req.profile_id && p.id === req.profile_id) ||
+      (req.telegram_id && p.telegram_id === req.telegram_id)
+    );
     if (profile) {
       await supabase
         .from("profiles")
         .update({ credits_remaining: profile.credits_remaining + req.credits })
-        .eq("user_id", req.user_id);
+        .eq("id", profile.id);
     }
 
-    toast.success(`${req.credits} kredit qo'shildi!`);
+    toast.success(`✅ ${req.credits} kredit qo'shildi!`);
     loadData();
   };
 
@@ -108,36 +126,42 @@ const Admin = () => {
     loadData();
   };
 
-  const updateCredits = async (userId: string, delta: number) => {
-    const profile = profiles.find(p => p.user_id === userId);
+  const updateCredits = async (profileId: string, delta: number) => {
+    const profile = profiles.find(p => p.id === profileId);
     if (!profile) return;
     const newCredits = Math.max(0, profile.credits_remaining + delta);
-    const { error } = await supabase.from("profiles").update({ credits_remaining: newCredits }).eq("user_id", userId);
+    const { error } = await supabase.from("profiles").update({ credits_remaining: newCredits }).eq("id", profileId);
     if (error) { toast.error("Xatolik"); return; }
-    setProfiles(prev => prev.map(p => p.user_id === userId ? { ...p, credits_remaining: newCredits } : p));
+    setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, credits_remaining: newCredits } : p));
     toast.success(`Kreditlar: ${newCredits}`);
   };
 
-  const filteredProfiles = profiles.filter(p =>
-    !search || (p.email || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProfiles = profiles.filter(p => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (p.email || "").toLowerCase().includes(s)
+      || (p.first_name || "").toLowerCase().includes(s)
+      || (p.telegram_username || "").toLowerCase().includes(s);
+  });
 
   const pendingPayments = paymentRequests.filter(r => r.status === "pending");
+  const approvedTotal = paymentRequests.filter(r => r.status === "approved")
+    .reduce((s, r) => s + parseInt(r.amount || "0"), 0);
 
   const tabs = [
     { id: "payments" as const, label: `To'lovlar${pendingPayments.length ? ` (${pendingPayments.length})` : ""}`, icon: CreditCard },
     { id: "users" as const, label: "Foydalanuvchilar", icon: Users },
     { id: "generations" as const, label: "Generatsiyalar", icon: ImageIcon },
-    { id: "finance" as const, label: "Moliya", icon: Settings },
+    { id: "finance" as const, label: "Moliya", icon: CreditCard },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto flex items-center justify-between h-14 px-4">
-          <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/login" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm">Dashboard</span>
+            <span className="text-sm">Chiqish</span>
           </Link>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -166,28 +190,30 @@ const Admin = () => {
         {/* Payments Tab */}
         {tab === "payments" && (
           <div className="space-y-3">
-            {paymentRequests.length === 0 ? (
+            {paymentRequests.length === 0 && !loading ? (
               <p className="text-center text-muted-foreground py-12">To'lov so'rovlari yo'q</p>
             ) : (
               paymentRequests.map(req => (
-                <div key={req.id} className={`rounded-xl border bg-card p-4 ${req.status === "pending" ? "border-yellow-500/30" : "border-border"}`}>
+                <div key={req.id} className={`rounded-xl border bg-card p-4 ${
+                  req.status === "pending" ? "border-primary/30 bg-primary/5" : "border-border"
+                }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {req.status === "pending" && <Clock className="h-4 w-4 text-yellow-500 shrink-0" />}
-                        {req.status === "approved" && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />}
-                        {req.status === "rejected" && <XCircle className="h-4 w-4 text-red-500 shrink-0" />}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        {req.status === "pending" && <Clock className="h-4 w-4 text-primary shrink-0" />}
+                        {req.status === "approved" && <CheckCircle className="h-4 w-4 text-primary shrink-0" />}
+                        {req.status === "rejected" && <XCircle className="h-4 w-4 text-destructive shrink-0" />}
                         <span className="font-medium text-foreground text-sm">{req.package_name}</span>
-                        <span className="text-xs text-muted-foreground">• {req.amount} so'm</span>
+                        <span className="text-xs text-muted-foreground">• {parseInt(req.amount).toLocaleString()} so'm</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {getEmail(req.user_id)} • {new Date(req.created_at).toLocaleString()} • {req.credits} kredit
+                        👤 {getUserDisplay(req)} • {new Date(req.created_at).toLocaleString()} • {req.credits} kredit
                       </p>
                     </div>
 
                     {req.screenshot_url && (
                       <a href={req.screenshot_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                        <img src={req.screenshot_url} alt="Screenshot" className="w-16 h-16 rounded-lg object-cover border border-border" />
+                        <img src={req.screenshot_url} alt="Screenshot" className="w-20 h-20 rounded-lg object-cover border border-border hover:opacity-80 transition-opacity" />
                       </a>
                     )}
 
@@ -196,10 +222,18 @@ const Admin = () => {
                         <Button size="sm" className="gradient-primary border-0" onClick={() => approvePayment(req)}>
                           <CheckCircle className="h-4 w-4 mr-1" /> Tasdiqlash
                         </Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => rejectPayment(req)}>
+                        <Button size="sm" variant="outline" onClick={() => rejectPayment(req)}>
                           <XCircle className="h-4 w-4 mr-1" /> Rad
                         </Button>
                       </div>
+                    )}
+
+                    {req.status !== "pending" && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 ${
+                        req.status === "approved" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
+                      }`}>
+                        {req.status === "approved" ? "✅ Tasdiqlandi" : "❌ Rad etildi"}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -217,46 +251,34 @@ const Admin = () => {
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Email bo'yicha qidirish..."
+                  placeholder="Ism, username yoki email..."
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-card text-sm text-foreground"
                 />
               </div>
-              <span className="text-sm text-muted-foreground">{filteredProfiles.length} foydalanuvchi</span>
+              <span className="text-sm text-muted-foreground">{filteredProfiles.length} ta</span>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tarif</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Kreditlar</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Sana</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Amallar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProfiles.map(p => (
-                    <tr key={p.id} className="border-t border-border hover:bg-muted/50">
-                      <td className="px-4 py-3 text-foreground">{p.email || "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">{p.plan}</span>
-                      </td>
-                      <td className="px-4 py-3 text-foreground">{p.credits_remaining}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => updateCredits(p.user_id, 10)} className="p-1 rounded hover:bg-primary/10 text-primary" title="+10 kredit">
-                            <Plus className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => updateCredits(p.user_id, -10)} className="p-1 rounded hover:bg-destructive/10 text-destructive" title="-10 kredit">
-                            <Minus className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              {filteredProfiles.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{getProfileDisplay(p)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.telegram_id ? `TG: ${p.telegram_id}` : p.email || "—"} • {new Date(p.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                      {p.credits_remaining}
+                    </span>
+                    <button onClick={() => updateCredits(p.id, 10)} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary" title="+10">
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => updateCredits(p.id, -10)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive" title="-10">
+                      <Minus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -277,7 +299,9 @@ const Admin = () => {
                   </div>
                   <div className="p-3 text-xs space-y-1">
                     <p className="text-foreground font-medium truncate">{g.marketplace || "—"}</p>
-                    <p className="text-muted-foreground">User: {g.user_id.slice(0, 8)}...</p>
+                    <p className="text-muted-foreground">
+                      {g.telegram_id ? `TG: ${g.telegram_id}` : g.user_id?.slice(0, 8) || "—"}
+                    </p>
                     <p className={`font-medium ${g.status === "completed" ? "text-primary" : "text-muted-foreground"}`}>{g.status}</p>
                     <p className="text-muted-foreground">{new Date(g.created_at).toLocaleString()}</p>
                   </div>
@@ -301,9 +325,23 @@ const Admin = () => {
               </div>
               <div className="rounded-xl border border-border bg-card p-6 text-center">
                 <p className="text-3xl font-display font-bold text-foreground">
-                  {paymentRequests.filter(r => r.status === "approved").reduce((s, r) => s + parseInt(r.amount || "0"), 0).toLocaleString()} so'm
+                  {approvedTotal.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">so'm</span>
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Jami daromad</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h3 className="font-display font-bold text-foreground mb-4">Telegram foydalanuvchilar</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 rounded-lg bg-muted">
+                  <p className="text-2xl font-bold text-foreground">{profiles.filter(p => p.telegram_id).length}</p>
+                  <p className="text-xs text-muted-foreground">Telegram orqali</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted">
+                  <p className="text-2xl font-bold text-foreground">{profiles.filter(p => !p.telegram_id && p.email).length}</p>
+                  <p className="text-xs text-muted-foreground">Web orqali</p>
+                </div>
               </div>
             </div>
           </div>

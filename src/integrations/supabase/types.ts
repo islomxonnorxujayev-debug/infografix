@@ -24,7 +24,8 @@ export type Database = {
           result_url: string | null
           status: string
           style_preset: string | null
-          user_id: string
+          telegram_id: number | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -35,7 +36,8 @@ export type Database = {
           result_url?: string | null
           status?: string
           style_preset?: string | null
-          user_id: string
+          telegram_id?: number | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -46,7 +48,8 @@ export type Database = {
           result_url?: string | null
           status?: string
           style_preset?: string | null
-          user_id?: string
+          telegram_id?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -58,8 +61,10 @@ export type Database = {
           credits: number
           id: string
           package_name: string
+          profile_id: string | null
           screenshot_url: string | null
           status: string
+          telegram_id: number | null
           updated_at: string
           user_id: string
         }
@@ -70,8 +75,10 @@ export type Database = {
           credits: number
           id?: string
           package_name: string
+          profile_id?: string | null
           screenshot_url?: string | null
           status?: string
+          telegram_id?: number | null
           updated_at?: string
           user_id: string
         }
@@ -82,40 +89,62 @@ export type Database = {
           credits?: number
           id?: string
           package_name?: string
+          profile_id?: string | null
           screenshot_url?: string | null
           status?: string
+          telegram_id?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
+          bot_state: string | null
           created_at: string
           credits_remaining: number
           email: string | null
+          first_name: string | null
           id: string
           plan: string
+          telegram_id: number | null
+          telegram_username: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          bot_state?: string | null
           created_at?: string
           credits_remaining?: number
           email?: string | null
+          first_name?: string | null
           id?: string
           plan?: string
+          telegram_id?: number | null
+          telegram_username?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          bot_state?: string | null
           created_at?: string
           credits_remaining?: number
           email?: string | null
+          first_name?: string | null
           id?: string
           plan?: string
+          telegram_id?: number | null
+          telegram_username?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
