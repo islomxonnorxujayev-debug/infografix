@@ -254,12 +254,12 @@ const Dashboard = () => {
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            telegram_id: telegramUser!.id,
-            image_base64: base64,
-            scene_type: "studio",
-            model_type: "without-model",
-          }),
+            body: JSON.stringify({
+              init_data: window.Telegram?.WebApp?.initData || "",
+              image_base64: base64,
+              scene_type: "studio",
+              model_type: "without-model",
+            }),
         });
         const data = await res.json();
         if (!res.ok) {
