@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const CARD_NUMBER = "9860 1606 0533 5993";
+const CARD_HOLDER = "Islomxon Norxujayev";
 
 const packages = [
   { name: "1 ta rasm", credits: 1, price: "4 999", amount: "4999" },
