@@ -103,7 +103,7 @@ const Dashboard = () => {
     if (password === ADMIN_PASSWORD) {
       setShowAdminDialog(false);
       setPassword("");
-      navigate("/login");
+      navigate("/admin");
     } else {
       toast.error("Parol noto'g'ri!");
       setPassword("");
