@@ -601,21 +601,16 @@ const TelegramGenerateTab = ({
 
   // Upload state
   return (
-    <div className="p-4 space-y-4">
-      {/* Welcome + credits */}
-      <div className="rounded-xl bg-card border border-border p-3 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">Salom, <span className="font-bold text-foreground">{firstName || "Foydalanuvchi"}</span></p>
-        </div>
-        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
-          <CreditCard className="h-3 w-3" />
-          {credits} kredit
-        </div>
+    <div className="px-4 space-y-4">
+      {/* Title */}
+      <div className="text-center">
+        <h2 className="font-display text-xl font-bold text-foreground">Mahsulot rasmini yuklang</h2>
+        <p className="text-sm text-muted-foreground mt-1">JPG, PNG yoki WEBP — 5MB gacha</p>
       </div>
 
       {/* Upload area */}
       <label className="block cursor-pointer">
-        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors ${
+        <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
           uploadedFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/30 bg-card"
         }`}>
           {uploadedFile && previewUrl ? (
@@ -626,9 +621,9 @@ const TelegramGenerateTab = ({
             </div>
           ) : (
             <div>
-              <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-              <p className="font-medium text-foreground text-sm">Mahsulot rasmini yuklang</p>
-              <p className="text-[10px] text-muted-foreground mt-1">JPG, PNG, WebP • max 10MB</p>
+              <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="font-medium text-foreground text-sm">Bosing yoki rasmni tashlang</p>
+              <p className="text-xs text-muted-foreground mt-1">Mahsulot surati</p>
             </div>
           )}
         </div>
@@ -652,18 +647,6 @@ const TelegramGenerateTab = ({
           <Sparkles className="mr-2 h-5 w-5" />
           {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
         </Button>
-      )}
-
-      {/* How it works */}
-      {!uploadedFile && (
-        <div className="rounded-xl bg-card border border-border p-4">
-          <p className="text-sm font-semibold text-foreground mb-2">Qanday ishlaydi?</p>
-          <div className="space-y-1.5 text-xs text-muted-foreground">
-            <p>📸 Mahsulot rasmini yuklang</p>
-            <p>🤖 AI professional darajada qayta ishlaydi</p>
-            <p>✨ Tayyor rasmni yuklab oling — 1 kredit</p>
-          </div>
-        </div>
       )}
     </div>
   );
