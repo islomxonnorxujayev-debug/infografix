@@ -254,6 +254,12 @@ serve(async (req) => {
 
     // === Handle photo ===
     if (message.photo && message.photo.length > 0) {
+      // Validate file size
+      const largestPhoto = message.photo[message.photo.length - 1];
+      if (largestPhoto.file_size && largestPhoto.file_size > MAX_FILE_SIZE) {
+        await sendMessage(botToken, chatId, "❌ Rasm juda katta (max 10MB). Kichikroq rasm yuboring.");
+        return new Response("OK");
+      }
       // Check if awaiting payment screenshot
       if (profile.bot_state && profile.bot_state.startsWith("awaiting_payment:")) {
         const parts = profile.bot_state.split(":");
