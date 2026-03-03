@@ -20,7 +20,16 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+      console.error("Missing env vars:", { url: !!supabaseUrl, serviceKey: !!supabaseServiceKey, anonKey: !!supabaseAnonKey });
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!lovableApiKey) {
       return new Response(JSON.stringify({ error: "AI API key not configured" }), {
@@ -30,7 +39,7 @@ serve(async (req) => {
     }
 
     // Auth check
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!, {
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
