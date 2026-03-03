@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const ADMIN_PASSWORD = "Medik9298";
+// Admin password verified server-side via edge function
 
 declare global {
   interface Window {
