@@ -238,16 +238,24 @@ serve(async (req) => {
     if (text === "/help" || text === "/yordam") {
       await sendMessage(botToken, chatId,
         `📋 <b>Buyruqlar:</b>\n\n` +
-        `📸 Rasm yuboring — professional qayta ishlash\n` +
+        `📱 Web App — professional rasm yaratish\n` +
         `/balance — Kredit qoldig'i\n` +
         `/buy — Kredit sotib olish\n` +
         `/cancel — Sotib olishni bekor qilish\n` +
         `/help — Yordam\n\n` +
         `🎨 <b>Qanday ishlaydi?</b>\n` +
-        `1. Mahsulot rasmini yuboring\n` +
-        `2. AI uni professional studio sifatida qayta ishlaydi\n` +
-        `3. Tayyor rasmni yuklab oling!\n\n` +
-        `💡 Har bir rasm uchun 1 kredit sarflanadi.`
+        `1. "Rasm yaratish" tugmasini bosing\n` +
+        `2. Web App ichida rasm yuklang\n` +
+        `3. AI professional studio sifatida qayta ishlaydi\n` +
+        `4. Tayyor rasmni yuklab oling!\n\n` +
+        `💡 Har bir rasm uchun 1 kredit sarflanadi.`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
+            ]]
+          }
+        }
       );
       return new Response("OK");
     }
