@@ -39,7 +39,27 @@ async function sendPhoto(token: string, chatId: number, photoUrl: string, captio
   });
 }
 
+// Input validation helpers
+function sanitizeString(str: string | undefined, maxLen: number): string {
+  if (!str || typeof str !== "string") return "";
+  return str.slice(0, maxLen).replace(/[<>&"']/g, (c) => {
+    const map: Record<string, string> = { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" };
+    return map[c] || c;
+  });
+}
+
+function isValidTelegramId(id: any): id is number {
+  return typeof id === "number" && Number.isInteger(id) && id > 0;
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 async function getOrCreateProfile(supabase: any, telegramId: number, username?: string, firstName?: string) {
+  if (!isValidTelegramId(telegramId)) return null;
+  
+  const cleanUsername = sanitizeString(username, 64);
+  const cleanFirstName = sanitizeString(firstName, 128);
+  
   // Try to find existing profile
   const { data: existing } = await supabase
     .from("profiles")
@@ -48,24 +68,22 @@ async function getOrCreateProfile(supabase: any, telegramId: number, username?: 
     .single();
 
   if (existing) {
-    // Update username/first_name if changed
-    if (username !== existing.telegram_username || firstName !== existing.first_name) {
+    if (cleanUsername !== existing.telegram_username || cleanFirstName !== existing.first_name) {
       await supabase.from("profiles").update({
-        telegram_username: username || existing.telegram_username,
-        first_name: firstName || existing.first_name,
+        telegram_username: cleanUsername || existing.telegram_username,
+        first_name: cleanFirstName || existing.first_name,
       }).eq("id", existing.id);
     }
     return existing;
   }
 
-  // Create new profile
   const { data: newProfile, error } = await supabase
     .from("profiles")
     .insert({
       telegram_id: telegramId,
-      telegram_username: username || null,
-      first_name: firstName || null,
-      credits_remaining: 1, // 1 bepul rasm
+      telegram_username: cleanUsername || null,
+      first_name: cleanFirstName || null,
+      credits_remaining: 1,
       plan: "free",
     })
     .select()
@@ -111,7 +129,13 @@ serve(async (req) => {
     const telegramId = message.from.id;
     const username = message.from.username;
     const firstName = message.from.first_name;
-    const text = message.text || "";
+    const text = (message.text || "").slice(0, 500); // Limit text length
+    
+    // Validate telegram ID
+    if (!isValidTelegramId(telegramId)) {
+      return new Response("OK");
+    }
+    
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // Auto-register / find user
@@ -230,6 +254,12 @@ serve(async (req) => {
 
     // === Handle photo ===
     if (message.photo && message.photo.length > 0) {
+      // Validate file size
+      const largestPhoto = message.photo[message.photo.length - 1];
+      if (largestPhoto.file_size && largestPhoto.file_size > MAX_FILE_SIZE) {
+        await sendMessage(botToken, chatId, "❌ Rasm juda katta (max 10MB). Kichikroq rasm yuboring.");
+        return new Response("OK");
+      }
       // Check if awaiting payment screenshot
       if (profile.bot_state && profile.bot_state.startsWith("awaiting_payment:")) {
         const parts = profile.bot_state.split(":");
@@ -252,12 +282,13 @@ serve(async (req) => {
         const imageRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
         const imageBytes = new Uint8Array(await imageRes.arrayBuffer());
 
-        // Upload screenshot to storage
-        const storagePath = `payments/${telegramId}/${crypto.randomUUID()}.jpg`;
-        await supabase.storage.from("product-images").upload(storagePath, imageBytes, {
+        // Upload screenshot to PRIVATE storage bucket
+        const storagePath = `${telegramId}/${crypto.randomUUID()}.jpg`;
+        await supabase.storage.from("payment-screenshots").upload(storagePath, imageBytes, {
           contentType: "image/jpeg", upsert: true,
         });
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(storagePath);
+        // Store path reference (not public URL since bucket is private)
+        const screenshotRef = `payment-screenshots/${storagePath}`;
 
         // Create payment request
         await supabase.from("payment_requests").insert({
@@ -267,7 +298,7 @@ serve(async (req) => {
           package_name: pkg?.name || `${credits} ta rasm`,
           credits,
           amount,
-          screenshot_url: urlData.publicUrl,
+          screenshot_url: screenshotRef,
           status: "pending",
         });
 
