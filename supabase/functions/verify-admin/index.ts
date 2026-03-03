@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,11 +27,39 @@ serve(async (req) => {
     }
 
     const valid = password === ADMIN_PASSWORD;
+    if (!valid) {
+      return new Response(JSON.stringify({ valid: false }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    return new Response(JSON.stringify({ valid }), {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin")
+      .limit(1)
+      .maybeSingle();
+
+    let adminEmail: string | null = null;
+    if (adminRole?.user_id) {
+      const { data: adminProfile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("user_id", adminRole.user_id)
+        .maybeSingle();
+
+      adminEmail = adminProfile?.email ?? null;
+    }
+
+    return new Response(JSON.stringify({ valid: true, adminEmail }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch {
     return new Response(JSON.stringify({ valid: false, error: "Invalid request" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

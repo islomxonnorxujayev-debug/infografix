@@ -138,14 +138,28 @@ const Dashboard = () => {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (data.valid) {
-        setShowAdminDialog(false);
-        setPassword("");
-        navigate("/admin");
-      } else {
+      if (!data.valid) {
         toast.error("Parol noto'g'ri!");
         setPassword("");
+        return;
       }
+
+      if (!data.adminEmail) {
+        toast.error("Admin akkaunt topilmadi");
+        setPassword("");
+        return;
+      }
+
+      const { error } = await signIn(data.adminEmail, password);
+      if (error) {
+        toast.error("Admin login xatoligi: " + error.message);
+        setPassword("");
+        return;
+      }
+
+      setShowAdminDialog(false);
+      setPassword("");
+      navigate("/admin");
     } catch {
       toast.error("Xatolik yuz berdi");
       setPassword("");
@@ -240,12 +254,12 @@ const Dashboard = () => {
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            telegram_id: telegramUser!.id,
-            image_base64: base64,
-            scene_type: "studio",
-            model_type: "without-model",
-          }),
+            body: JSON.stringify({
+              init_data: window.Telegram?.WebApp?.initData || "",
+              image_base64: base64,
+              scene_type: "studio",
+              model_type: "without-model",
+            }),
         });
         const data = await res.json();
         if (!res.ok) {

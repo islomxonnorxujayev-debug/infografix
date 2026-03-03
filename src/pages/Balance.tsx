@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-const CARD_NUMBER = "8600 1234 5678 9012";
+const CARD_NUMBER = "9860 1606 0533 5993";
 
 const packages = [
   { name: "1 ta rasm", credits: 1, price: "4 999", amount: "4999" },
@@ -61,12 +61,12 @@ const Balance = () => {
       const filePath = `${user.id}/payments/${crypto.randomUUID()}.${fileExt}`;
 
       const { error: uploadErr } = await supabase.storage
-        .from("product-images")
+        .from("payment-screenshots")
         .upload(filePath, screenshotFile, { cacheControl: "3600", upsert: true });
 
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("payment-screenshots").getPublicUrl(filePath);
 
       const { error } = await supabase.from("payment_requests").insert({
         user_id: user.id,
