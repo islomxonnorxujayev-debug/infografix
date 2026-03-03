@@ -41,6 +41,7 @@ const Generate = () => {
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("uz");
 
   const previewUrl = useMemo(() => {
     if (uploadedFile) return URL.createObjectURL(uploadedFile);
