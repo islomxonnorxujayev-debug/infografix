@@ -175,6 +175,21 @@ FINAL OUTPUT: A scroll-stopping, category-optimized promotional image for ${mark
     }
 
     const aiData = await aiResponse.json();
+
+    // Check for rate limit error embedded in the response
+    const choiceError = aiData.choices?.[0]?.error;
+    if (choiceError) {
+      console.error("AI choice error:", JSON.stringify(choiceError));
+      if (choiceError.metadata?.error_type === "rate_limit_exceeded" || choiceError.code === 429) {
+        return new Response(JSON.stringify({ error: "AI tizimi band. 1-2 daqiqadan keyin qayta urinib ko'ring." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "AI xatolik qaytardi. Qayta urinib ko'ring." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const resultImageBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!resultImageBase64) {
