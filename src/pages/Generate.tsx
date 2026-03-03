@@ -292,7 +292,7 @@ const Generate = () => {
                   </div>
                 ) : resultUrl ? (
                   <div>
-                    <h2 className="font-display text-3xl font-bold text-foreground mb-6">Tayyor! 🎉</h2>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Tayyor! 🎉</h2>
 
                     {/* Before / After */}
                     <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden mb-6">
