@@ -190,8 +190,8 @@ const Generate = () => {
               <div className="text-center px-2">
                 <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2">Mahsulot rasmini yuklang</h2>
                 <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">JPG, PNG yoki WEBP — 5MB gacha</p>
-                <label className="block max-w-md mx-auto cursor-pointer">
-                  <div className="border-2 border-dashed border-border rounded-2xl p-10 hover:border-primary/40 transition-colors bg-card">
+                <label className="block max-w-sm sm:max-w-md mx-auto cursor-pointer">
+                  <div className="border-2 border-dashed border-border rounded-2xl p-6 sm:p-10 hover:border-primary/40 transition-colors bg-card">
                     {uploadedFile && previewUrl ? (
                       <div className="text-center">
                         <img src={previewUrl} alt="Preview" className="max-h-48 mx-auto rounded-lg mb-4 object-contain" />
