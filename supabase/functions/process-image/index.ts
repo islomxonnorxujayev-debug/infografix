@@ -70,41 +70,51 @@ serve(async (req) => {
     }
 
     // Build creative marketplace promotional image prompt
-    const prompt = `You are a world-class e-commerce creative designer and product marketing expert. Transform this product image into a STUNNING, eye-catching marketplace promotional image.
+    const prompt = `You are a world-class e-commerce creative designer, product photographer, and marketing expert. Transform this product image into a STUNNING, eye-catching marketplace promotional image.
 
-CRITICAL — THIS IS NOT A SIMPLE BACKGROUND REMOVAL. Create a FULL PROMOTIONAL DESIGN:
+CRITICAL — THIS IS NOT A SIMPLE BACKGROUND REMOVAL. Create a FULL PROMOTIONAL DESIGN like top-selling marketplace listings:
 
 1. CREATIVE BACKGROUND:
-   - Create a vibrant, colorful gradient or themed background that matches the product category
-   - Use bold colors, gradients, abstract shapes, light effects, and decorative elements
-   - Add visual flair: geometric patterns, bokeh effects, leaves, sparkles, or category-relevant decorations
+   - Create a vibrant, colorful gradient or themed background that matches the product category and mood
+   - Use bold colors, gradients, abstract waves, light effects, glow, and decorative elements
+   - Add visual flair: geometric patterns, bokeh effects, leaves, sparkles, stars, or category-relevant decorations
    - The background should be visually striking and attention-grabbing, NOT plain white
+   - Use color psychology: energetic colors for sports, warm tones for home, cool tones for tech
 
 2. PRODUCT PRESENTATION:
    - Extract the product cleanly from its original background
-   - Place it prominently in the composition — large, clear, and well-lit
-   - Add professional studio lighting effects: highlights, reflections, and depth
-   - The product must remain photorealistic and accurate in color/detail
+   - Place it prominently — large, clear, sharp, and well-lit with studio lighting
+   - Add highlights, reflections, subtle glow, and depth effects
+   - The product must remain 100% photorealistic and accurate in color, shape, and detail
 
-3. TEXT & BRANDING:
-   - Add the product name or category as large, bold, stylish text
-   - Use modern typography with effects like shadows, outlines, or gradient fills
-   - Add a short tagline or feature callout if relevant
-   - Text should be in the same language context as the marketplace (${marketplace || "e-commerce"})
+3. HUMAN MODEL / LIFESTYLE ELEMENT:
+   - IMPORTANT: Add a realistic human model or person USING the product in context
+   - Show the product being worn, held, used, or demonstrated by a real-looking person
+   - The model should look natural, attractive, and relevant to the target audience
+   - Position the model on one side with the product enlarged on the other side
+   - If a model doesn't fit (e.g., small electronics), show a lifestyle scene: hands holding product, product on a desk, product in use
+   - The model/lifestyle element makes the listing MORE appealing and shows scale/usage
 
-4. COMPOSITION for ${marketplace || "e-commerce"} (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
-   - Create a balanced, professional layout like top marketplace sellers use
-   - Product takes 40-60% of the frame
-   - Text and decorative elements fill remaining space
-   - Design should look like a paid professional marketplace listing, not a basic photo
+4. TEXT & BRANDING:
+   - Add the product name or category as large, bold, stylish text with modern typography
+   - Use text effects: shadows, outlines, gradient fills, 3D look, or neon glow
+   - Add 2-3 short feature callouts or benefits as smaller text badges
+   - Add trust badges like "⭐ Bestseller", "🔥 Top", "✅ Sifatli" where appropriate
+   - Text language should match the marketplace context (${marketplace || "e-commerce"})
 
-5. STYLE REFERENCE:
-   - Think: top-selling Wildberries/Ozon/Amazon product cards
-   - Vibrant, commercial, attention-grabbing
-   - Professional product marketing design
-   - Must stand out in a feed of competing products
+5. COMPOSITION for ${marketplace || "e-commerce"} (${marketplaceRatio || "1:1"}, ${marketplaceSize || "1080x1080"}):
+   - Create a balanced, professional layout: product + model + text + decorative elements
+   - Use a split or layered composition: model on one side, product closeup on other
+   - Design should look like a PAID professional marketplace listing card
+   - Must instantly grab attention in a feed of competing products
 
-OUTPUT: A complete, ready-to-upload promotional product image for ${marketplace || "any marketplace"}. NOT a plain white background photo — a FULL creative marketing design with styled background, text, and professional composition.`;
+6. STYLE REFERENCE:
+   - Top-selling Wildberries, Ozon, Uzum Market, Amazon product cards
+   - Vibrant, commercial, scroll-stopping design
+   - Think: professional infographic + lifestyle photo + promotional banner combined
+   - The kind of image that gets the MOST clicks and sales
+
+OUTPUT: A complete, ready-to-upload promotional product image for ${marketplace || "any marketplace"} with: creative background, product closeup, human model/lifestyle element, stylish text, and professional composition. This must look like a premium marketplace listing that a professional designer created.`;
 
     console.log("Calling AI for generation:", generationId, "marketplace:", marketplace);
 
