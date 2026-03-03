@@ -161,130 +161,128 @@ const Dashboard = () => {
     );
   }
 
-  // Telegram Web App — Client Workspace
+  // Telegram Web App — matching screenshot design
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      {/* Header */}
       <header className="shrink-0 border-b border-border bg-card">
         <div className="flex items-center justify-between h-12 px-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-display font-bold text-foreground text-sm">Infografix AI</span>
+            <span className="font-display font-bold text-foreground text-sm">Yangi rasm</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">
+            {/* Credits - clickable to balance */}
+            <button
+              onClick={() => navigate("/balance")}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
+            >
               <CreditCard className="h-3 w-3" />
               {tgProfile?.credits_remaining ?? 0}
-            </div>
+            </button>
+            {/* Admin icon */}
+            <button
+              onClick={() => setShowAdminDialog(true)}
+              className="p-1.5 rounded-md text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            >
+              <Shield className="h-3.5 w-3.5" />
+            </button>
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
 
-      <div className="shrink-0 flex border-b border-border bg-card">
-        {[
-          { id: "generate" as const, label: "Yaratish", icon: Camera },
-          { id: "history" as const, label: "Tarix", icon: ImageIcon },
-          { id: "payments" as const, label: "To'lovlar", icon: Wallet },
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTgTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
-              tgTab === t.id ? "text-primary border-b-2 border-primary" : "text-muted-foreground"
-            }`}
-          >
-            <t.icon className="h-3.5 w-3.5" />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1 overflow-y-auto">
-        {tgTab === "generate" && (
-          <TelegramGenerateTab
-            telegramId={telegramUser!.id}
-            credits={tgProfile?.credits_remaining ?? 0}
-            firstName={tgProfile?.first_name || telegramUser?.first_name}
-            uploadedFile={uploadedFile}
-            setUploadedFile={setUploadedFile}
-            processing={processing}
-            setProcessing={setProcessing}
-            resultUrl={resultUrl}
-            setResultUrl={setResultUrl}
-            fileInputRef={fileInputRef}
-            previewUrl={previewUrl}
-            onCreditsUpdate={(newCredits: number) => setTgProfile((p: any) => p ? { ...p, credits_remaining: newCredits } : p)}
-            onGenerationDone={(gen: Generation) => setTgGenerations(prev => [gen, ...prev])}
-          />
-        )}
-
-        {tgTab === "history" && (
-          <div className="p-4">
-            {tgGenerations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">Hali rasmlar yo'q</p>
-                <p className="text-xs text-muted-foreground mt-1">Botga rasm yuboring</p>
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 py-4 px-4">
+          {[
+            { icon: Upload, active: !resultUrl && !processing },
+            { icon: Settings, active: false },
+            { icon: Download, active: !!resultUrl },
+          ].map((step, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className={`flex items-center justify-center w-9 h-9 rounded-full transition-all ${
+                step.active
+                  ? "gradient-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                <step.icon className="h-4 w-4" />
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {tgGenerations.map(g => (
-                  <div key={g.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                    <div className="aspect-square bg-muted">
-                      {g.result_url ? (
-                        <img src={g.result_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Sparkles className="h-6 w-6 text-muted-foreground" />
+              {i < 2 && <div className="w-6 h-px bg-border" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Generate content */}
+        <TelegramGenerateTab
+          telegramId={telegramUser!.id}
+          credits={tgProfile?.credits_remaining ?? 0}
+          firstName={tgProfile?.first_name || telegramUser?.first_name}
+          uploadedFile={uploadedFile}
+          setUploadedFile={setUploadedFile}
+          processing={processing}
+          setProcessing={setProcessing}
+          resultUrl={resultUrl}
+          setResultUrl={setResultUrl}
+          fileInputRef={fileInputRef}
+          previewUrl={previewUrl}
+          onCreditsUpdate={(newCredits: number) => setTgProfile((p: any) => p ? { ...p, credits_remaining: newCredits } : p)}
+          onGenerationDone={(gen: Generation) => setTgGenerations(prev => [gen, ...prev])}
+        />
+
+        {/* Collapsible History */}
+        <div className="px-4 pb-4">
+          <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Tarix</span>
+                {tgGenerations.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                    {tgGenerations.length}
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${historyOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              {tgGenerations.length === 0 ? (
+                <div className="flex flex-col items-center py-6 text-center">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-xs text-muted-foreground">Hali rasmlar yo'q</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {tgGenerations.map(g => (
+                    <div key={g.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                      <div className="aspect-square bg-muted">
+                        {g.result_url ? (
+                          <img src={g.result_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Sparkles className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2 text-xs">
+                        <p className="text-foreground font-medium truncate">{g.marketplace || "Studio"}</p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className={g.status === "completed" ? "text-primary" : "text-muted-foreground"}>
+                            {g.status === "completed" ? "✅" : "⏳"}
+                          </span>
+                          <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString("uz-UZ")}</span>
                         </div>
-                      )}
-                    </div>
-                    <div className="p-2 text-xs">
-                      <p className="text-foreground font-medium truncate">{g.marketplace || "Studio"}</p>
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className={g.status === "completed" ? "text-primary" : "text-muted-foreground"}>
-                          {g.status === "completed" ? "✅" : "⏳"}
-                        </span>
-                        <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString("uz-UZ")}</span>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tgTab === "payments" && (
-          <div className="p-4">
-            {tgPayments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Wallet className="h-10 w-10 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">To'lovlar yo'q</p>
-                <p className="text-xs text-muted-foreground mt-1">Botda /buy buyrug'i bilan kredit sotib oling</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {tgPayments.map(p => (
-                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{p.package_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {parseInt(p.amount).toLocaleString()} so'm • {new Date(p.created_at).toLocaleDateString("uz-UZ")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {p.status === "pending" && <Clock className="h-4 w-4 text-amber-500" />}
-                      {p.status === "approved" && <CheckCircle className="h-4 w-4 text-primary" />}
-                      {p.status === "rejected" && <XCircle className="h-4 w-4 text-destructive" />}
-                      <span className="text-xs font-medium text-foreground">+{p.credits}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       </div>
+
+      <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
     </div>
   );
 };
