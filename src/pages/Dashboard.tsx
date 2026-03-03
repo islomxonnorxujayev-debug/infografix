@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Plus, ImageIcon, CreditCard, LogOut, Shield } from "lucide-react";
+import { Sparkles, Plus, ImageIcon, CreditCard, LogOut, Shield, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAdmin } from "@/hooks/useAdmin";
