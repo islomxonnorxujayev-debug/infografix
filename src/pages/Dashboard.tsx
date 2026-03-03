@@ -53,6 +53,7 @@ interface Payment {
 }
 
 const Dashboard = () => {
+  const { t } = useLanguage();
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [password, setPassword] = useState("");
   const [telegramUser, setTelegramUser] = useState<{ id: number; first_name?: string } | null>(null);
@@ -62,7 +63,7 @@ const Dashboard = () => {
   const [tgProfile, setTgProfile] = useState<any>(null);
   const [tgGenerations, setTgGenerations] = useState<Generation[]>([]);
   const [tgPayments, setTgPayments] = useState<Payment[]>([]);
-  const [tgTab, setTgTab] = useState<"generate" | "history" | "payments">("generate");
+  const [historyOpen, setHistoryOpen] = useState(false);
   
   // Generate state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
