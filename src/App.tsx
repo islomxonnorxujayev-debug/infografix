@@ -7,11 +7,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
-import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Generate from "./pages/Generate";
+import Balance from "./pages/Balance";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -26,11 +26,12 @@ const App = () => (
         <LanguageProvider>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/generate" element={<ProtectedRoute><Generate /></ProtectedRoute>} />
+              <Route path="/balance" element={<ProtectedRoute><Balance /></ProtectedRoute>} />
               <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
