@@ -267,18 +267,23 @@ const Dashboard = () => {
       setProcessing(true);
       try {
         const base64 = await fileToBase64(uploadedFile);
+        const initData = window.Telegram?.WebApp?.initData || "";
+        console.log("Telegram generate: initData length=", initData.length, "telegramId=", telegramUser?.id);
+        
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-          const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
+        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              init_data: window.Telegram?.WebApp?.initData || "",
-              image_base64: base64,
-              scene_type: sceneType,
-              model_type: modelType,
-            }),
+          body: JSON.stringify({
+            init_data: initData,
+            telegram_id: telegramUser?.id,
+            image_base64: base64,
+            scene_type: sceneType,
+            model_type: modelType,
+          }),
         });
         const data = await res.json();
+        console.log("Telegram generate response:", res.status, data);
         if (!res.ok) {
           toast.error(data.error || "Xatolik yuz berdi");
           return;
@@ -295,6 +300,7 @@ const Dashboard = () => {
         }, ...prev]);
         toast.success("Rasm tayyor! ✨");
       } catch (err: any) {
+        console.error("Telegram generate error:", err);
         toast.error(err.message || "Xatolik yuz berdi");
       } finally {
         setProcessing(false);
