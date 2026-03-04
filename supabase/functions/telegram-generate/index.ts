@@ -124,7 +124,15 @@ serve(async (req) => {
       });
     }
 
-    const { data: originalUrlData } = supabase.storage.from("product-images").getPublicUrl(originalPath);
+    // Use signed URL for AI access (private bucket)
+    const { data: originalSignedData } = await supabase.storage.from("product-images")
+      .createSignedUrl(originalPath, 60 * 30); // 30 min for AI processing
+
+    if (!originalSignedData?.signedUrl) {
+      return new Response(JSON.stringify({ error: "Rasm URL yaratishda xatolik" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const sceneType = scene_type || "studio";
     const modelType = model_type || "without-model";
@@ -133,7 +141,7 @@ serve(async (req) => {
       id: genId,
       user_id: profile.user_id || null,
       telegram_id,
-      original_url: originalUrlData.publicUrl,
+      original_url: originalPath,
       marketplace: "Web App / Studio",
       style_preset: sceneType,
       enhancements: { model: modelType, scene: sceneType, language: "uz", source: "webapp" },
