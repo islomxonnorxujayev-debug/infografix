@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const marketplaces = [
   { name: "Uzum Market", ratio: "3:4", size: "1080×1440", color: "hsl(234 89% 60%)" },
@@ -9,6 +10,8 @@ const marketplaces = [
 ];
 
 const MarketplaceSection = () => {
+  const { t } = useLanguage();
+
   return (
     <section id="how-it-works" className="py-16 sm:py-24">
       <div className="container mx-auto px-4">
@@ -18,12 +21,12 @@ const MarketplaceSection = () => {
           viewport={{ once: true }}
           className="text-center mb-12 sm:mb-16"
         >
-          <span className="text-sm font-medium text-primary mb-3 block">Marketplace uchun tayyor</span>
+          <span className="text-sm font-medium text-primary mb-3 block">{t("market.label")}</span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Har bir <span className="text-gradient">marketplace</span> uchun optimallashtirilgan
+            {t("market.title1")} <span className="text-gradient">{t("market.titleHighlight")}</span> {t("market.title2")}
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-            Platformani tanlang — biz o'lcham, padding va talablarni avtomatik sozlaymiz.
+            {t("market.desc")}
           </p>
         </motion.div>
 

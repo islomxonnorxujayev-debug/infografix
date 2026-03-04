@@ -2,9 +2,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -19,22 +22,22 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Imkoniyatlar</a>
-          <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Qanday ishlaydi</a>
-          <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Narxlar</a>
-          <a href="#roadmap" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Rejalar</a>
+          <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t("nav.features")}</a>
+          <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t("nav.howItWorks")}</a>
+          <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t("nav.pricing")}</a>
+          <a href="#roadmap" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t("nav.roadmap")}</a>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          <LanguageSwitcher />
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/login">Kirish</Link>
+            <Link to="/login">{t("nav.login")}</Link>
           </Button>
           <Button size="sm" className="gradient-primary border-0" asChild>
-            <Link to="/signup">Bepul boshlash</Link>
+            <Link to="/signup">{t("nav.getStarted")}</Link>
           </Button>
         </div>
 
-        {/* Mobile menu button */}
         <button
           className="md:hidden p-2 text-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -43,19 +46,19 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden bg-background border-b border-border px-4 pb-4 space-y-3">
-          <a href="#features" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">Imkoniyatlar</a>
-          <a href="#how-it-works" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">Qanday ishlaydi</a>
-          <a href="#pricing" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">Narxlar</a>
-          <a href="#roadmap" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">Rejalar</a>
+          <a href="#features" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">{t("nav.features")}</a>
+          <a href="#how-it-works" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">{t("nav.howItWorks")}</a>
+          <a href="#pricing" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">{t("nav.pricing")}</a>
+          <a href="#roadmap" onClick={() => setMobileOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">{t("nav.roadmap")}</a>
           <div className="flex gap-2 pt-2">
+            <LanguageSwitcher />
             <Button variant="outline" size="sm" className="flex-1" asChild>
-              <Link to="/login">Kirish</Link>
+              <Link to="/login">{t("nav.login")}</Link>
             </Button>
             <Button size="sm" className="gradient-primary border-0 flex-1" asChild>
-              <Link to="/signup">Bepul boshlash</Link>
+              <Link to="/signup">{t("nav.getStarted")}</Link>
             </Button>
           </div>
         </div>
