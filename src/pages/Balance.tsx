@@ -67,14 +67,14 @@ const Balance = () => {
 
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = supabase.storage.from("payment-screenshots").getPublicUrl(filePath);
+      const screenshotRef = `payment-screenshots/${filePath}`;
 
       const { error } = await supabase.from("payment_requests").insert({
         user_id: user.id,
         package_name: selectedPkg.name,
         credits: selectedPkg.credits,
         amount: selectedPkg.amount,
-        screenshot_url: urlData.publicUrl,
+        screenshot_url: screenshotRef,
         status: "pending",
       });
 
