@@ -119,7 +119,7 @@ const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Tarix</h3>
           <div className="space-y-2">
             {history.map(req => (
-              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} />
+              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} screenshotSrc={screenshotUrls[req.id]} />
             ))}
           </div>
         </div>
