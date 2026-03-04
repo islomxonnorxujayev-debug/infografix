@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Clock, CreditCard, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Profile {
   id: string;
