@@ -28,6 +28,7 @@ declare global {
         expand?: () => void;
         initData?: string;
         MainButton?: any;
+        openLink?: (url: string) => void;
       };
     };
   }
