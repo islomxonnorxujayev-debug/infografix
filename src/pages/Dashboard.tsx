@@ -289,12 +289,16 @@ const Dashboard = () => {
     if (!uploadedFile || credits <= 0) return;
 
     if (isTelegram) {
-      // Telegram flow
+      const initData = window.Telegram?.WebApp?.initData || "";
+      if (!initData) {
+        toast.error("Telegram autentifikatsiyasi topilmadi. Ilovani qayta oching.");
+        return;
+      }
+
       setProcessing(true);
       try {
         const base64 = await fileToBase64(uploadedFile);
-        const initData = window.Telegram?.WebApp?.initData || "";
-        console.log("Telegram generate: initData length=", initData.length, "telegramId=", telegramUser?.id);
+        console.log("Telegram generate: initData length=", initData.length);
         
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
@@ -310,7 +314,13 @@ const Dashboard = () => {
         const data = await res.json();
         console.log("Telegram generate response:", res.status, data);
         if (!res.ok) {
-          toast.error(data.error || "Xatolik yuz berdi");
+          if (res.status === 401) {
+            toast.error("Autentifikatsiya muddati o'tgan. Ilovani qayta oching.");
+          } else if (res.status === 429) {
+            toast.error("AI tizimi band. 1-2 daqiqadan keyin qayta urinib ko'ring.");
+          } else {
+            toast.error(data.error || "Xatolik yuz berdi");
+          }
           return;
         }
         setResultUrl(data.resultUrl);
@@ -326,7 +336,7 @@ const Dashboard = () => {
         toast.success("Rasm tayyor! ✨");
       } catch (err: any) {
         console.error("Telegram generate error:", err);
-        toast.error(err.message || "Xatolik yuz berdi");
+        toast.error("Tarmoq xatosi. Internet aloqangizni tekshiring.");
       } finally {
         setProcessing(false);
       }
