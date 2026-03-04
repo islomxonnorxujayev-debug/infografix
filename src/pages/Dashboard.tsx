@@ -470,38 +470,55 @@ const Dashboard = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const extractStoragePath = (url: string): string | null => {
+    // Extract path from full Supabase URL or use as-is if already a path
+    const match = url.match(/\/product-images\/(.+)$/);
+    return match ? match[1] : null;
+  };
+
   const handleDownload = async (url?: string) => {
     const downloadUrl = url || resultUrl;
     if (!downloadUrl) return;
 
-    // In Telegram WebApp, use openLink to open in system browser for download
-    if (isTelegram && window.Telegram?.WebApp) {
-      try {
-        window.Telegram.WebApp.openLink?.(downloadUrl);
-      } catch {
-        // Fallback: open via window
-        window.open(downloadUrl, '_blank');
-      }
-      toast.info("Rasm tashqi brauzerda ochildi. Saqlash uchun rasmni bosib turing.");
-      return;
-    }
-
-    // Web flow: try fetch+blob, fallback to direct link
     try {
-      const response = await fetch(downloadUrl, { mode: 'cors' });
-      if (!response.ok) throw new Error('Download failed');
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'image/png' }));
+      // Extract storage path and use download proxy to avoid CORS
+      const storagePath = extractStoragePath(downloadUrl);
+      if (!storagePath) {
+        // Fallback for URLs that don't match pattern
+        window.open(downloadUrl, '_blank');
+        toast.info("Rasm yangi oynada ochildi.");
+        return;
+      }
+
+      toast.loading("Yuklab olinmoqda...", { id: "download" });
+
+      const response = await supabase.functions.invoke("download-proxy", {
+        body: { storagePath },
+      });
+
+      if (response.error || !response.data) {
+        throw new Error("Download failed");
+      }
+
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'image/png' });
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `infografix-1080x1440-${Date.now()}.png`;
+      a.download = `infografix-${Date.now()}.png`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 100);
+      toast.success("Yuklab olindi!", { id: "download" });
     } catch {
-      window.open(downloadUrl, '_blank');
-      toast.info("Rasm yangi oynada ochildi. Ushlab turish va saqlash mumkin.");
+      // Fallback: open in browser
+      if (isTelegram && window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(downloadUrl);
+        toast.info("Rasm tashqi brauzerda ochildi.", { id: "download" });
+      } else {
+        window.open(downloadUrl, '_blank');
+        toast.info("Rasm yangi oynada ochildi.", { id: "download" });
+      }
     }
   };
 
