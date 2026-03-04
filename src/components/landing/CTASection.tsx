@@ -2,8 +2,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const CTASection = () => {
+  const { t } = useLanguage();
+
   return (
     <section className="py-16 sm:py-24 bg-card">
       <div className="container mx-auto px-4">
@@ -14,10 +17,10 @@ const CTASection = () => {
           className="max-w-3xl mx-auto text-center gradient-primary rounded-2xl sm:rounded-3xl p-8 sm:p-12 md:p-16 shadow-glow"
         >
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-            Mahsulot rasmlaringizni yangi darajaga olib chiqing
+            {t("cta.title")}
           </h2>
           <p className="text-primary-foreground/80 text-base sm:text-lg mb-6 sm:mb-8 max-w-xl mx-auto">
-            Minglab marketplace sotuvchilari bilan birga studio sifatidagi rasmlar yarating.
+            {t("cta.desc")}
           </p>
           <Button
             size="lg"
@@ -25,7 +28,7 @@ const CTASection = () => {
             asChild
           >
             <Link to="/signup">
-              Bepul boshlash — 15 ta rasm
+              {t("cta.btn")}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>

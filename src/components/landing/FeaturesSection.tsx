@@ -1,47 +1,20 @@
 import { motion } from "framer-motion";
-import {
-  Eraser, Sun, Focus, Store, Palette, Maximize, Zap
-} from "lucide-react";
+import { Eraser, Sun, Focus, Store, Palette, Maximize, Zap } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const features = [
-  {
-    icon: Eraser,
-    title: "Fonni olib tashlash",
-    description: "AI mahsulotni aniq kesib oladi — toza qirralar, istalgan fonga tayyor.",
-  },
-  {
-    icon: Sun,
-    title: "Studio yorug'ligi",
-    description: "Professional yorug'lik avtomatik qo'llanadi — soyalar, yaltiroqlik va chuqurlik.",
-  },
-  {
-    icon: Focus,
-    title: "Detal aniqligi",
-    description: "Tekstura va mayda detallarni kuchaytiradi, tabiiy ko'rinishni saqlagan holda.",
-  },
-  {
-    icon: Store,
-    title: "Marketplace optimizatsiya",
-    description: "Uzum, Wildberries, Ozon uchun to'g'ri o'lcham va formatda avtomatik tayyorlash.",
-  },
-  {
-    icon: Palette,
-    title: "6 ta stil preset",
-    description: "Oq studio fonidan premium qora fonigacha — kerakli kayfiyatni tanlang.",
-  },
-  {
-    icon: Maximize,
-    title: "4K sifat",
-    description: "Rasmlarni sifat yo'qotmasdan yuqori resolutsiyaga kengaytirish.",
-  },
-  {
-    icon: Zap,
-    title: "Tez ishlash",
-    description: "Natijani soniyalarda oling. Butun katalogni batch rejimda ishlating.",
-  },
+const featureKeys = [
+  { icon: Eraser, titleKey: "feat.bg.title", descKey: "feat.bg.desc" },
+  { icon: Sun, titleKey: "feat.light.title", descKey: "feat.light.desc" },
+  { icon: Focus, titleKey: "feat.detail.title", descKey: "feat.detail.desc" },
+  { icon: Store, titleKey: "feat.market.title", descKey: "feat.market.desc" },
+  { icon: Palette, titleKey: "feat.style.title", descKey: "feat.style.desc" },
+  { icon: Maximize, titleKey: "feat.size.title", descKey: "feat.size.desc" },
+  { icon: Zap, titleKey: "feat.speed.title", descKey: "feat.speed.desc" },
 ];
 
 const FeaturesSection = () => {
+  const { t } = useLanguage();
+
   return (
     <section id="features" className="py-16 sm:py-24 bg-card">
       <div className="container mx-auto px-4">
@@ -51,20 +24,19 @@ const FeaturesSection = () => {
           viewport={{ once: true }}
           className="text-center mb-12 sm:mb-16"
         >
-          <span className="text-sm font-medium text-primary mb-3 block">Imkoniyatlar</span>
+          <span className="text-sm font-medium text-primary mb-3 block">{t("feat.label")}</span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Professional rasm uchun{" "}
-            <span className="text-gradient">barcha kerakli vositalar</span>
+            <span className="text-gradient">{t("feat.title")}</span>
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-            Studio sifatidagi fotosurat — brauzeringizda. Uskunasiz, fotografsiz.
+            {t("feat.desc")}
           </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
-          {features.map((feature, i) => (
+          {featureKeys.map((feature, i) => (
             <motion.div
-              key={feature.title}
+              key={feature.titleKey}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -75,10 +47,10 @@ const FeaturesSection = () => {
                 <feature.icon className="h-5 w-5 text-primary-foreground" />
               </div>
               <h3 className="font-display text-base sm:text-lg font-semibold text-foreground mb-2">
-                {feature.title}
+                {t(feature.titleKey)}
               </h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                {feature.description}
+                {t(feature.descKey)}
               </p>
             </motion.div>
           ))}

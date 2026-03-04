@@ -1,15 +1,18 @@
 import { motion } from "framer-motion";
 import { Video, Users, BarChart3, Layers, Globe } from "lucide-react";
-
-const roadmapItems = [
-  { icon: Layers, title: "AI Infografika", desc: "Mahsulot ma'lumotlaridan avtomatik infografika yaratish." },
-  { icon: Video, title: "AI Video", desc: "Marketplace listing uchun qisqa mahsulot videolari." },
-  { icon: Users, title: "Virtual Model", desc: "AI yaratgan modellar — fotosessiyasiz." },
-  { icon: BarChart3, title: "Raqobatchi tahlili", desc: "Raqobatchilar rasmlarini tahlil qilib, tavsiyalar olish." },
-  { icon: Globe, title: "Ko'p tilli interfeys", desc: "O'zbek, Rus va Ingliz tillarida to'liq qo'llab-quvvatlash." },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const RoadmapSection = () => {
+  const { t } = useLanguage();
+
+  const roadmapItems = [
+    { icon: Layers, title: t("road.infographic"), desc: t("road.infographicDesc") },
+    { icon: Video, title: t("road.video"), desc: t("road.videoDesc") },
+    { icon: Users, title: t("road.model"), desc: t("road.modelDesc") },
+    { icon: BarChart3, title: t("road.analysis"), desc: t("road.analysisDesc") },
+    { icon: Globe, title: t("road.lang"), desc: t("road.langDesc") },
+  ];
+
   return (
     <section id="roadmap" className="py-16 sm:py-24">
       <div className="container mx-auto px-4">
@@ -19,19 +22,19 @@ const RoadmapSection = () => {
           viewport={{ once: true }}
           className="text-center mb-12 sm:mb-16"
         >
-          <span className="text-sm font-medium text-accent mb-3 block">Tez kunda</span>
+          <span className="text-sm font-medium text-accent mb-3 block">{t("road.label")}</span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
-            <span className="text-gradient">Rejalarimiz</span>
+            <span className="text-gradient">{t("road.title")}</span>
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-            Marketplace sotuvchilari uchun eng yaxshi vositalarni yaratmoqdamiz.
+            {t("road.desc")}
           </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
           {roadmapItems.map((item, i) => (
             <motion.div
-              key={item.title}
+              key={i}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

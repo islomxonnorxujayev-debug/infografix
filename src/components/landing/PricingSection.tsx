@@ -2,122 +2,84 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const tiers = [
-  {
-    name: "Bepul",
-    price: "0",
-    period: " so'm",
-    description: "Sinab ko'ring",
-    perImage: "",
-    features: [
-      "1 ta bepul rasm",
-      "Standart sifat",
-      "Barcha stil presetlar",
-    ],
-    cta: "Boshlash",
-    highlighted: false,
-  },
-  {
-    name: "1 ta rasm",
-    price: "4 999",
-    period: " so'm",
-    description: "Bir martalik sinov",
-    perImage: "4 999 so'm/rasm",
-    features: [
-      "1 ta rasm generatsiya",
-      "HD sifat",
-      "Barcha formatlar",
-      "Telegram bot orqali",
-    ],
-    cta: "Sotib olish",
-    highlighted: false,
-  },
-  {
-    name: "10 ta rasm",
-    price: "45 000",
-    period: " so'm",
-    description: "Kichik paket",
-    perImage: "4 500 so'm/rasm",
-    features: [
-      "10 ta rasm generatsiya",
-      "HD sifat",
-      "Barcha formatlar",
-      "Telegram bot orqali",
-      "10% tejamkorlik",
-    ],
-    cta: "Sotib olish",
-    highlighted: false,
-  },
-  {
-    name: "15 ta rasm",
-    price: "55 000",
-    period: " so'm",
-    description: "O'rtacha paket",
-    perImage: "3 667 so'm/rasm",
-    features: [
-      "15 ta rasm generatsiya",
-      "HD sifat",
-      "Barcha formatlar",
-      "Telegram bot orqali",
-      "27% tejamkorlik",
-    ],
-    cta: "Sotib olish",
-    highlighted: false,
-  },
-  {
-    name: "20 ta rasm",
-    price: "65 000",
-    period: " so'm",
-    description: "Faol sotuvchilar uchun",
-    perImage: "3 250 so'm/rasm",
-    features: [
-      "20 ta rasm generatsiya",
-      "HD sifat",
-      "Barcha formatlar",
-      "Telegram bot orqali",
-      "35% tejamkorlik",
-    ],
-    cta: "Sotib olish",
-    highlighted: true,
-  },
-  {
-    name: "50 ta rasm",
-    price: "149 000",
-    period: " so'm",
-    description: "Katta do'konlar uchun",
-    perImage: "2 980 so'm/rasm",
-    features: [
-      "50 ta rasm generatsiya",
-      "HD sifat",
-      "Barcha formatlar",
-      "Batch ishlash",
-      "Tezkor support",
-      "40% tejamkorlik",
-    ],
-    cta: "Sotib olish",
-    highlighted: false,
-  },
-  {
-    name: "100 ta rasm",
-    price: "249 999",
-    period: " so'm",
-    description: "Biznes paket",
-    perImage: "2 500 so'm/rasm",
-    features: [
-      "100 ta rasm generatsiya",
-      "HD sifat",
-      "Barcha formatlar",
-      "Batch ishlash",
-      "Shaxsiy support",
-      "50% tejamkorlik",
-    ],
-    cta: "Sotib olish",
-    highlighted: false,
-  },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const PricingSection = () => {
+  const { t } = useLanguage();
+
+  const tiers = [
+    {
+      name: t("price.free"),
+      price: "0",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.freeDesc"),
+      perImage: "",
+      features: [t("price.freeFeat1"), t("price.freeFeat2")],
+      cta: t("price.start"),
+      highlighted: false,
+    },
+    {
+      name: `1 ${t("price.imageGen")}`,
+      price: "4 999",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.onetime"),
+      perImage: `4 999 ${t("bal.perImage")}`,
+      features: [`1 ${t("price.imageGen")}`, t("price.hd"), t("price.allFormats"), t("price.viaTelegram")],
+      cta: t("price.buy"),
+      highlighted: false,
+    },
+    {
+      name: `10 ${t("price.imageGen")}`,
+      price: "45 000",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.small"),
+      perImage: `4 500 ${t("bal.perImage")}`,
+      features: [`10 ${t("price.imageGen")}`, t("price.hd"), t("price.allFormats"), t("price.viaTelegram"), `10% ${t("price.saving")}`],
+      cta: t("price.buy"),
+      highlighted: false,
+    },
+    {
+      name: `15 ${t("price.imageGen")}`,
+      price: "55 000",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.medium"),
+      perImage: `3 667 ${t("bal.perImage")}`,
+      features: [`15 ${t("price.imageGen")}`, t("price.hd"), t("price.allFormats"), t("price.viaTelegram"), `27% ${t("price.saving")}`],
+      cta: t("price.buy"),
+      highlighted: false,
+    },
+    {
+      name: `20 ${t("price.imageGen")}`,
+      price: "65 000",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.active"),
+      perImage: `3 250 ${t("bal.perImage")}`,
+      features: [`20 ${t("price.imageGen")}`, t("price.hd"), t("price.allFormats"), t("price.viaTelegram"), `35% ${t("price.saving")}`],
+      cta: t("price.buy"),
+      highlighted: true,
+    },
+    {
+      name: `50 ${t("price.imageGen")}`,
+      price: "149 000",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.big"),
+      perImage: `2 980 ${t("bal.perImage")}`,
+      features: [`50 ${t("price.imageGen")}`, t("price.hd"), t("price.allFormats"), t("price.batch"), t("price.fastSupport"), `40% ${t("price.saving")}`],
+      cta: t("price.buy"),
+      highlighted: false,
+    },
+    {
+      name: `100 ${t("price.imageGen")}`,
+      price: "249 999",
+      period: ` ${t("bal.sum")}`,
+      description: t("price.business"),
+      perImage: `2 500 ${t("bal.perImage")}`,
+      features: [`100 ${t("price.imageGen")}`, t("price.hd"), t("price.allFormats"), t("price.batch"), t("price.personalSupport"), `50% ${t("price.saving")}`],
+      cta: t("price.buy"),
+      highlighted: false,
+    },
+  ];
+
   return (
     <section id="pricing" className="py-16 sm:py-24 bg-card">
       <div className="container mx-auto px-4">
@@ -127,12 +89,12 @@ const PricingSection = () => {
           viewport={{ once: true }}
           className="text-center mb-12 sm:mb-16"
         >
-          <span className="text-sm font-medium text-primary mb-3 block">Narxlar</span>
+          <span className="text-sm font-medium text-primary mb-3 block">{t("price.label")}</span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Sodda va <span className="text-gradient">arzon narxlar</span>
+            {t("price.title")} <span className="text-gradient">{t("price.titleHighlight")}</span>
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-            Bepul boshlang. Kerak bo'lganda kengaytiring. Istalgan vaqtda bekor qiling.
+            {t("price.desc")}
           </p>
         </motion.div>
 
@@ -152,7 +114,7 @@ const PricingSection = () => {
             >
               {tier.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full gradient-primary text-primary-foreground text-xs font-semibold whitespace-nowrap">
-                  Eng ommabop
+                  {t("price.popular")}
                 </div>
               )}
               <div className="mb-4">
@@ -198,7 +160,7 @@ const PricingSection = () => {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-8 max-w-lg mx-auto">
-          💡 Ko'proq sotib olsangiz — har bir rasm arzonroq! 100 ta paketda 50% tejaysiz.
+          {t("price.hint")}
         </p>
       </div>
     </section>

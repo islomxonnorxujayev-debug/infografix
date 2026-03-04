@@ -44,7 +44,7 @@ interface Generation {
 }
 
 const Dashboard = () => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -113,7 +113,7 @@ const Dashboard = () => {
   // Helper to resolve storage path to signed URL
   const getSignedUrl = async (path: string): Promise<string> => {
     if (!path || path.startsWith("http")) return path;
-    const { data } = await supabase.storage.from("product-images").createSignedUrl(path, 60 * 60 * 24); // 24h
+    const { data } = await supabase.storage.from("product-images").createSignedUrl(path, 60 * 60 * 24);
     return data?.signedUrl || path;
   };
 
@@ -128,7 +128,6 @@ const Dashboard = () => {
       .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50)
       .then(async ({ data }) => {
         if (!data) return;
-        // Resolve storage paths to signed URLs
         const resolved = await Promise.all(data.map(async (g) => ({
           ...g,
           result_url: g.result_url ? await getSignedUrl(g.result_url) : null,
@@ -166,19 +165,19 @@ const Dashboard = () => {
   const handleAdminAccess = async () => {
     try {
       if (!adminEmail || !password) {
-        toast.error("Email va parol kiriting");
+        toast.error(t("dash.loginError"));
         return;
       }
 
       const { error } = await signIn(adminEmail, password);
       if (error) {
-        toast.error("Admin login xatoligi: " + error.message);
+        toast.error("Admin login: " + error.message);
         return;
       }
 
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData.user) {
-        toast.error("Sessiya tekshirib bo'lmadi");
+        toast.error(t("dash.sessionError"));
         await signOut();
         return;
       }
@@ -190,7 +189,7 @@ const Dashboard = () => {
 
       if (roleError || !isAdmin) {
         await signOut();
-        toast.error("Admin ruxsati yo'q");
+        toast.error(t("dash.adminNoAccess"));
         return;
       }
 
@@ -199,7 +198,7 @@ const Dashboard = () => {
       setPassword("");
       navigate("/admin");
     } catch {
-      toast.error("Xatolik yuz berdi");
+      toast.error(t("dash.error"));
     }
   };
 
@@ -241,19 +240,19 @@ const Dashboard = () => {
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="w-full max-w-xs space-y-6">
             <div className="text-center">
-              <h1 className="font-display text-2xl font-bold text-foreground mb-1">Tizimga kirish</h1>
-              <p className="text-muted-foreground text-sm">Email va parolingizni kiriting</p>
+              <h1 className="font-display text-2xl font-bold text-foreground mb-1">{t("dash.login")}</h1>
+              <p className="text-muted-foreground text-sm">{t("dash.loginDesc")}</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-3">
               <Input type="email" placeholder="Email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required />
-              <Input type="password" placeholder="Parol" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
+              <Input type="password" placeholder={lang === "ru" ? "Пароль" : "Parol"} value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
               <Button className="w-full bg-primary hover:bg-primary/90" type="submit" disabled={loginLoading}>
-                {loginLoading ? "Kirish..." : "Kirish"}
+                {loginLoading ? t("dash.loginLoading") : t("dash.loginBtn")}
               </Button>
             </form>
           </div>
         </div>
-        <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
+        <AdminDialog t={t} lang={lang} open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
       </div>
     );
   }
@@ -264,12 +263,12 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Faqat rasm fayllari qabul qilinadi");
+      toast.error(t("dash.onlyImages"));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Rasm juda katta (max 10MB)");
+      toast.error(t("dash.tooLarge"));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -291,14 +290,13 @@ const Dashboard = () => {
     if (isTelegram) {
       const initData = window.Telegram?.WebApp?.initData || "";
       if (!initData) {
-        toast.error("Telegram autentifikatsiyasi topilmadi. Ilovani qayta oching.");
+        toast.error(t("dash.tgAuthNotFound"));
         return;
       }
 
       setProcessing(true);
       try {
         const base64 = await fileToBase64(uploadedFile);
-        console.log("Telegram generate: initData length=", initData.length);
         
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
@@ -309,17 +307,17 @@ const Dashboard = () => {
             image_base64: base64,
             scene_type: sceneType,
             model_type: modelType,
+            language: lang,
           }),
         });
         const data = await res.json();
-        console.log("Telegram generate response:", res.status, data);
         if (!res.ok) {
           if (res.status === 401) {
-            toast.error("Autentifikatsiya muddati o'tgan. Ilovani qayta oching.");
+            toast.error(t("dash.authExpired"));
           } else if (res.status === 429) {
-            toast.error("AI tizimi band. 1-2 daqiqadan keyin qayta urinib ko'ring.");
+            toast.error(t("dash.aiBusy"));
           } else {
-            toast.error(data.error || "Xatolik yuz berdi");
+            toast.error(data.error || t("dash.error"));
           }
           return;
         }
@@ -333,17 +331,17 @@ const Dashboard = () => {
           status: "completed",
           created_at: new Date().toISOString(),
         }, ...prev]);
-        toast.success("Rasm tayyor! ✨");
+        toast.success(t("dash.imageReady"));
       } catch (err: any) {
         console.error("Telegram generate error:", err);
-        toast.error("Tarmoq xatosi. Internet aloqangizni tekshiring.");
+        toast.error(t("dash.networkError"));
       } finally {
         setProcessing(false);
       }
     } else {
       // Web flow via process-image
       if (!user?.id) {
-        toast.error("Sessiya tugagan. Qayta kiring.");
+        toast.error(t("dash.sessionExpired"));
         navigate("/");
         return;
       }
@@ -355,22 +353,18 @@ const Dashboard = () => {
         const fileExt = uploadedFile.name.split('.').pop();
         const filePath = `${user.id}/originals/${crypto.randomUUID()}.${fileExt}`;
 
-        console.log("Step 1: Uploading to storage...");
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(filePath, uploadedFile, { cacheControl: "3600", upsert: true });
         if (uploadError) {
-          console.error("Storage upload error:", uploadError);
-          toast.error("Rasmni yuklashda xatolik: " + uploadError.message);
+          toast.error(t("dash.uploadError") + ": " + uploadError.message);
           return;
         }
 
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
         const originalUrl = urlData.publicUrl;
-        // For AI, we need a signed URL since bucket is private
         const { data: signedData } = await supabase.storage.from("product-images").createSignedUrl(filePath, 60 * 30);
         const aiImageUrl = signedData?.signedUrl || originalUrl;
-        console.log("Step 2: Creating generation record...");
 
         const { data: genData, error: genError } = await supabase
           .from("generations")
@@ -379,40 +373,36 @@ const Dashboard = () => {
             original_url: filePath,
             marketplace: `${sceneType} / ${modelType}`,
             style_preset: sceneType,
-            enhancements: { model: modelType, scene: sceneType },
+            enhancements: { model: modelType, scene: sceneType, language: lang },
             status: "processing",
           })
           .select("id")
           .single();
 
         if (genError) {
-          console.error("Generation insert error:", genError);
-          toast.error("Ma'lumot saqlashda xatolik: " + genError.message);
+          toast.error(t("dash.saveError") + ": " + genError.message);
           return;
         }
 
         generationId = genData.id;
 
-        console.log("Step 3: Calling AI process-image...");
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
             imageUrl: aiImageUrl,
             modelType,
             sceneType,
             generationId: genData.id,
-            language: "uz",
+            language: lang,
           },
         });
 
         if (fnError) {
-          console.error("Function invoke error:", fnError);
-
-          let errorMessage = "AI xizmati bilan bog'lanishda xatolik yuz berdi";
+          let errorMessage = t("dash.aiError");
           const responseStatus = fnError.context?.status;
 
-          if (responseStatus === 401) errorMessage = "Tizimga qayta kiring va yana urinib ko'ring";
-          if (responseStatus === 402) errorMessage = "Kredit tugagan. Balansni to'ldiring";
-          if (responseStatus === 429) errorMessage = "AI tizimi band. 1-2 daqiqadan keyin qayta urinib ko'ring";
+          if (responseStatus === 401) errorMessage = t("dash.relogin");
+          if (responseStatus === 402) errorMessage = t("dash.noCreditsBalance");
+          if (responseStatus === 429) errorMessage = t("dash.aiBusy");
 
           try {
             const errorBody = await fnError.context?.json?.();
@@ -447,17 +437,16 @@ const Dashboard = () => {
           created_at: new Date().toISOString(),
         }, ...prev]);
 
-        // Reload credits
         const { data: profileData } = await supabase.from("profiles").select("credits_remaining").eq("user_id", user.id).single();
         if (profileData) setCredits(profileData.credits_remaining);
 
-        toast.success("Rasm tayyor! ✨");
+        toast.success(t("dash.imageReady"));
       } catch (err: any) {
         if (generationId) {
           await supabase.from("generations").update({ status: "failed" }).eq("id", generationId);
         }
         console.error("Generate error details:", err);
-        toast.error(err.message || "Noma'lum xatolik yuz berdi. Qayta urinib ko'ring.");
+        toast.error(err.message || t("dash.unknownError"));
       } finally {
         setProcessing(false);
       }
@@ -471,7 +460,6 @@ const Dashboard = () => {
   };
 
   const extractStoragePath = (url: string): string | null => {
-    // Extract path from full Supabase URL or use as-is if already a path
     const match = url.match(/\/product-images\/(.+)$/);
     return match ? match[1] : null;
   };
@@ -481,14 +469,12 @@ const Dashboard = () => {
     if (!downloadUrl) return;
 
     try {
-      toast.loading("Yuklab olinmoqda...", { id: "download" });
+      toast.loading(t("dash.downloading"), { id: "download" });
 
-      // Get a signed URL for the file
       const storagePath = extractStoragePath(downloadUrl);
       let directUrl = downloadUrl;
 
       if (storagePath) {
-        // Clean the path - remove query params from signed URLs
         const cleanPath = storagePath.split("?")[0];
         const { data: signedData } = await supabase.storage
           .from("product-images")
@@ -498,14 +484,12 @@ const Dashboard = () => {
         }
       }
 
-      // In Telegram WebApp, open in system browser so user can save to gallery
       if (isTelegram && window.Telegram?.WebApp?.openLink) {
         window.Telegram.WebApp.openLink(directUrl);
-        toast.success("Rasm brauzerda ochildi. Rasmni bosib turing va saqlang.", { id: "download" });
+        toast.success(t("dash.downloadTelegram"), { id: "download" });
         return;
       }
 
-      // Web: try blob download
       try {
         const response = await fetch(directUrl);
         if (!response.ok) throw new Error("fetch failed");
@@ -518,14 +502,13 @@ const Dashboard = () => {
         document.body.appendChild(a);
         a.click();
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 100);
-        toast.success("Yuklab olindi!", { id: "download" });
+        toast.success(t("dash.downloaded"), { id: "download" });
       } catch {
-        // Fallback: open in new tab
         window.open(directUrl, '_blank');
-        toast.success("Rasm yangi oynada ochildi.", { id: "download" });
+        toast.success(t("dash.downloadNewTab"), { id: "download" });
       }
     } catch {
-      toast.error("Yuklab olishda xatolik", { id: "download" });
+      toast.error(t("dash.downloadError"), { id: "download" });
     }
   };
 
@@ -536,10 +519,9 @@ const Dashboard = () => {
         <div className="flex items-center justify-between h-12 px-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-display font-bold text-foreground text-sm">Yangi rasm</span>
+            <span className="font-display font-bold text-foreground text-sm">{t("dash.title")}</span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Credits - clickable to balance */}
             <button
               onClick={() => navigate("/balance")}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
@@ -547,14 +529,12 @@ const Dashboard = () => {
               <CreditCard className="h-3 w-3" />
               {credits}
             </button>
-            {/* Admin icon */}
             <button
               onClick={() => setShowAdminDialog(true)}
               className="p-1.5 rounded-md text-muted-foreground/40 hover:text-muted-foreground transition-colors"
             >
               <Shield className="h-3.5 w-3.5" />
             </button>
-            {/* Logout for web users */}
             {!isTelegram && user && (
               <button onClick={() => signOut()} className="p-1.5 rounded-md text-muted-foreground/40 hover:text-destructive transition-colors">
                 <LogOut className="h-3.5 w-3.5" />
@@ -590,18 +570,18 @@ const Dashboard = () => {
         {processing ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
             <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-            <p className="font-display font-bold text-foreground text-lg">Qayta ishlanmoqda...</p>
+            <p className="font-display font-bold text-foreground text-lg">{t("dash.processing")}</p>
             <div className="mt-3 flex items-center justify-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
               <span className="font-mono text-2xl font-bold text-primary">{elapsedSeconds}</span>
-              <span className="text-sm text-muted-foreground">soniya</span>
+              <span className="text-sm text-muted-foreground">{t("dash.seconds")}</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">Odatda 30-60 soniya davom etadi</p>
+            <p className="text-xs text-muted-foreground mt-3">{t("dash.processingTime")}</p>
             <div className="mt-4 space-y-1 text-left text-xs text-muted-foreground">
-              <p>{elapsedSeconds >= 0 ? "✅" : "⏳"} Rasm tahlil qilinmoqda</p>
-              <p>{elapsedSeconds >= 5 ? "✅" : "⏳"} Sahna yaratilmoqda</p>
-              <p>{elapsedSeconds >= 15 ? "✅" : "⏳"} Professional yoritish qo'shilmoqda</p>
-              <p>{elapsedSeconds >= 25 ? "✅" : "⏳"} Sifat tekshirilmoqda</p>
+              <p>{elapsedSeconds >= 0 ? "✅" : "⏳"} {t("dash.step.analyzing")}</p>
+              <p>{elapsedSeconds >= 5 ? "✅" : "⏳"} {t("dash.step.scene")}</p>
+              <p>{elapsedSeconds >= 15 ? "✅" : "⏳"} {t("dash.step.lighting")}</p>
+              <p>{elapsedSeconds >= 25 ? "✅" : "⏳"} {t("dash.step.quality")}</p>
             </div>
           </div>
         ) : resultUrl ? (
@@ -609,36 +589,34 @@ const Dashboard = () => {
             <div className="rounded-xl border border-border bg-card overflow-hidden">
               <div className="flex">
                 <div className="w-1/2 border-r border-border bg-muted flex items-center justify-center p-2">
-                  {previewUrl && <img src={previewUrl} alt="Original" className="max-h-40 object-contain rounded-lg" />}
+                  {previewUrl && <img src={previewUrl} alt={t("dash.original")} className="max-h-40 object-contain rounded-lg" />}
                 </div>
                 <div className="w-1/2 flex items-center justify-center p-2">
-                  <img src={resultUrl} alt="Natija" className="max-h-40 object-contain rounded-lg" />
+                  <img src={resultUrl} alt={t("dash.aiResult")} className="max-h-40 object-contain rounded-lg" />
                 </div>
               </div>
               <div className="flex border-t border-border text-[10px] font-medium">
-                <div className="w-1/2 text-center py-1.5 text-muted-foreground border-r border-border">Asl rasm</div>
-                <div className="w-1/2 text-center py-1.5 text-primary">AI natija</div>
+                <div className="w-1/2 text-center py-1.5 text-muted-foreground border-r border-border">{t("dash.original")}</div>
+                <div className="w-1/2 text-center py-1.5 text-primary">{t("dash.aiResult")}</div>
               </div>
             </div>
             <div className="flex gap-2">
               <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={() => handleDownload()}>
                 <Download className="mr-2 h-4 w-4" />
-                Yuklab olish
+                {t("dash.download")}
               </Button>
               <Button variant="outline" className="flex-1" onClick={handleReset}>
-                Yangi rasm
+                {t("dash.newImage")}
               </Button>
             </div>
           </div>
         ) : (
           <div className="px-4 space-y-4">
-            {/* Title */}
             <div className="text-center">
-              <h2 className="font-display text-xl font-bold text-foreground">Mahsulot rasmini yuklang</h2>
-              <p className="text-sm text-muted-foreground mt-1">Istalgan formatda — 10MB gacha</p>
+              <h2 className="font-display text-xl font-bold text-foreground">{t("dash.uploadTitle")}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t("dash.uploadDesc")}</p>
             </div>
 
-            {/* Upload area */}
             <label className="block cursor-pointer">
               <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
                 uploadedFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/30 bg-card"
@@ -652,8 +630,8 @@ const Dashboard = () => {
                 ) : (
                   <div>
                     <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="font-medium text-foreground text-sm">Bosing yoki rasmni tashlang</p>
-                    <p className="text-xs text-muted-foreground mt-1">Mahsulot surati</p>
+                    <p className="font-medium text-foreground text-sm">{t("dash.uploadBtn")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("dash.uploadLabel")}</p>
                   </div>
                 )}
               </div>
@@ -666,16 +644,14 @@ const Dashboard = () => {
               />
             </label>
 
-            {/* Options - only show after file uploaded */}
             {uploadedFile && (
               <div className="space-y-3">
-                {/* Model type */}
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Model turi</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{t("dash.modelType")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {([
-                      { value: "without-model", label: "📦 Modelsiz", desc: "Faqat mahsulot" },
-                      { value: "with-model", label: "🧑 Modelli", desc: "Model bilan" },
+                      { value: "without-model", label: t("dash.withoutModel"), desc: t("dash.withoutModelDesc") },
+                      { value: "with-model", label: t("dash.withModel"), desc: t("dash.withModelDesc") },
                     ] as const).map((opt) => (
                       <button
                         key={opt.value}
@@ -693,16 +669,15 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Scene type */}
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Sahna turi</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{t("dash.sceneType")}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { value: "studio", label: "🎬", name: "Studiya" },
-                      { value: "nature", label: "🌿", name: "Tabiat" },
-                      { value: "lifestyle", label: "🏠", name: "Lifestyle" },
-                      { value: "minimalist", label: "⬜", name: "Minimalist" },
-                      { value: "infographic", label: "📊", name: "Infografika" },
+                      { value: "studio", label: "🎬", name: t("dash.studio") },
+                      { value: "nature", label: "🌿", name: t("dash.nature") },
+                      { value: "lifestyle", label: "🏠", name: t("dash.lifestyle") },
+                      { value: "minimalist", label: "⬜", name: t("dash.minimalist") },
+                      { value: "infographic", label: "📊", name: t("dash.infographic") },
                     ].map((opt) => (
                       <button
                         key={opt.value}
@@ -720,13 +695,11 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Fixed size info */}
                 <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
                   <ImageIcon className="h-3 w-3" />
-                  <span>Rasm o'lchami: 1080 × 1440 px (3:4)</span>
+                  <span>{t("dash.imageSize")}</span>
                 </div>
 
-                {/* Generate button */}
                 <Button
                   className="w-full bg-primary hover:bg-primary/90"
                   size="lg"
@@ -734,7 +707,7 @@ const Dashboard = () => {
                   disabled={credits <= 0}
                 >
                   <Sparkles className="mr-2 h-5 w-5" />
-                  {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
+                  {credits <= 0 ? t("dash.noCredits") : t("dash.generateBtn")}
                 </Button>
               </div>
             )}
@@ -748,7 +721,7 @@ const Dashboard = () => {
               <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">Tarix</span>
+                  <span className="text-sm font-medium text-foreground">{t("dash.history")}</span>
                   {generations.length > 0 && (
                     <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                       {generations.length}
@@ -761,7 +734,7 @@ const Dashboard = () => {
                 {generations.length === 0 ? (
                   <div className="flex flex-col items-center py-6 text-center">
                     <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-xs text-muted-foreground">Hali rasmlar yo'q</p>
+                    <p className="text-xs text-muted-foreground">{t("dash.noImages")}</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
@@ -782,7 +755,7 @@ const Dashboard = () => {
                             <span className={g.status === "completed" ? "text-primary" : "text-muted-foreground"}>
                               {g.status === "completed" ? "✅" : "⏳"}
                             </span>
-                            <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString("uz-UZ")}</span>
+                            <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString(lang === "ru" ? "ru-RU" : "uz-UZ")}</span>
                           </div>
                           {g.result_url && g.status === "completed" && (
                             <button
@@ -793,7 +766,7 @@ const Dashboard = () => {
                               className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors"
                             >
                               <Download className="h-3 w-3" />
-                              Yuklab olish
+                              {t("dash.download")}
                             </button>
                           )}
                         </div>
@@ -807,13 +780,14 @@ const Dashboard = () => {
         )}
       </div>
 
-      <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
+      <AdminDialog t={t} lang={lang} open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
     </div>
   );
 };
 
 // ==================== Admin Dialog ====================
-const AdminDialog = ({ open, onOpenChange, adminEmail, setAdminEmail, password, setPassword, onSubmit }: {
+const AdminDialog = ({ t, lang, open, onOpenChange, adminEmail, setAdminEmail, password, setPassword, onSubmit }: {
+  t: (key: string) => string; lang: string;
   open: boolean; onOpenChange: (v: boolean) => void;
   adminEmail: string; setAdminEmail: (v: string) => void;
   password: string; setPassword: (v: string) => void; onSubmit: () => void;
@@ -823,14 +797,14 @@ const AdminDialog = ({ open, onOpenChange, adminEmail, setAdminEmail, password, 
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2 text-base">
           <Shield className="h-4 w-4 text-primary" />
-          Admin kirish
+          {t("dash.adminLogin")}
         </DialogTitle>
-        <DialogDescription className="text-xs">Admin email va parolni kiriting</DialogDescription>
+        <DialogDescription className="text-xs">{t("dash.adminLoginDesc")}</DialogDescription>
       </DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
         <Input type="email" placeholder="Admin email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} autoFocus />
-        <Input type="password" placeholder="Parol" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" size="sm">Kirish</Button>
+        <Input type="password" placeholder={lang === "ru" ? "Пароль" : "Parol"} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" size="sm">{t("dash.loginBtn")}</Button>
       </form>
     </DialogContent>
   </Dialog>
