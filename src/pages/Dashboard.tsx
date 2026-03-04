@@ -28,6 +28,7 @@ declare global {
         expand?: () => void;
         initData?: string;
         MainButton?: any;
+        openLink?: (url: string) => void;
       };
     };
   }
@@ -288,12 +289,16 @@ const Dashboard = () => {
     if (!uploadedFile || credits <= 0) return;
 
     if (isTelegram) {
-      // Telegram flow
+      const initData = window.Telegram?.WebApp?.initData || "";
+      if (!initData) {
+        toast.error("Telegram autentifikatsiyasi topilmadi. Ilovani qayta oching.");
+        return;
+      }
+
       setProcessing(true);
       try {
         const base64 = await fileToBase64(uploadedFile);
-        const initData = window.Telegram?.WebApp?.initData || "";
-        console.log("Telegram generate: initData length=", initData.length, "telegramId=", telegramUser?.id);
+        console.log("Telegram generate: initData length=", initData.length);
         
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
@@ -309,7 +314,13 @@ const Dashboard = () => {
         const data = await res.json();
         console.log("Telegram generate response:", res.status, data);
         if (!res.ok) {
-          toast.error(data.error || "Xatolik yuz berdi");
+          if (res.status === 401) {
+            toast.error("Autentifikatsiya muddati o'tgan. Ilovani qayta oching.");
+          } else if (res.status === 429) {
+            toast.error("AI tizimi band. 1-2 daqiqadan keyin qayta urinib ko'ring.");
+          } else {
+            toast.error(data.error || "Xatolik yuz berdi");
+          }
           return;
         }
         setResultUrl(data.resultUrl);
@@ -325,7 +336,7 @@ const Dashboard = () => {
         toast.success("Rasm tayyor! ✨");
       } catch (err: any) {
         console.error("Telegram generate error:", err);
-        toast.error(err.message || "Xatolik yuz berdi");
+        toast.error("Tarmoq xatosi. Internet aloqangizni tekshiring.");
       } finally {
         setProcessing(false);
       }
@@ -459,27 +470,37 @@ const Dashboard = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleDownload = async () => {
-    if (!resultUrl) return;
+  const handleDownload = async (url?: string) => {
+    const downloadUrl = url || resultUrl;
+    if (!downloadUrl) return;
+
+    // In Telegram WebApp, use openLink to open in system browser for download
+    if (isTelegram && window.Telegram?.WebApp) {
+      try {
+        window.Telegram.WebApp.openLink?.(downloadUrl);
+      } catch {
+        // Fallback: open via window
+        window.open(downloadUrl, '_blank');
+      }
+      toast.info("Rasm tashqi brauzerda ochildi. Saqlash uchun rasmni bosib turing.");
+      return;
+    }
+
+    // Web flow: try fetch+blob, fallback to direct link
     try {
-      const response = await fetch(resultUrl, { mode: 'cors' });
+      const response = await fetch(downloadUrl, { mode: 'cors' });
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
-      const pngBlob = new Blob([blob], { type: 'image/png' });
-      const url = URL.createObjectURL(pngBlob);
+      const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'image/png' }));
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = `infografix-1080x1440-${Date.now()}.png`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 100);
     } catch {
-      // Fallback: open in new tab for manual save
-      window.open(resultUrl, '_blank');
+      window.open(downloadUrl, '_blank');
       toast.info("Rasm yangi oynada ochildi. Ushlab turish va saqlash mumkin.");
     }
   };
@@ -576,7 +597,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={handleDownload}>
+              <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={() => handleDownload()}>
                 <Download className="mr-2 h-4 w-4" />
                 Yuklab olish
               </Button>
@@ -741,23 +762,9 @@ const Dashboard = () => {
                           </div>
                           {g.result_url && g.status === "completed" && (
                             <button
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                try {
-                                  const res = await fetch(g.result_url!, { mode: 'cors' });
-                                  if (!res.ok) throw new Error();
-                                  const blob = await res.blob();
-                                  const url = URL.createObjectURL(new Blob([blob], { type: 'image/png' }));
-                                  const a = document.createElement("a");
-                                  a.href = url;
-                                  a.download = `infografix-1080x1440-${g.id.slice(0, 8)}.png`;
-                                  a.style.display = "none";
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-                                } catch {
-                                  window.open(g.result_url!, '_blank');
-                                }
+                                handleDownload(g.result_url!);
                               }}
                               className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors"
                             >
