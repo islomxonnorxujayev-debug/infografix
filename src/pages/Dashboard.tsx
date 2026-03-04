@@ -65,6 +65,8 @@ const Dashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [modelType, setModelType] = useState<"with-model" | "without-model">("without-model");
+  const [sceneType, setSceneType] = useState<string>("studio");
 
   // Login state (for non-Telegram)
   const [loginEmail, setLoginEmail] = useState("");
