@@ -214,7 +214,7 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time.`;
 
     return new Response(
       JSON.stringify({
-        resultUrl: publicUrlData.publicUrl,
+        resultUrl: resultSignedUrl,
         creditsRemaining: profile.credits_remaining - 1,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
