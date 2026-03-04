@@ -285,7 +285,6 @@ const Dashboard = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             init_data: initData,
-            telegram_id: telegramUser?.id,
             image_base64: base64,
             scene_type: sceneType,
             model_type: modelType,

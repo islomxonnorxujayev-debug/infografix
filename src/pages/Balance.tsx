@@ -115,9 +115,8 @@ const Balance = () => {
         const res = await fetch(`https://${projectId}.supabase.co/functions/v1/submit-payment`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+           body: JSON.stringify({
             init_data: initData,
-            telegram_id: telegramUser?.id,
             package_name: selectedPkg.name,
             credits: selectedPkg.credits,
             amount: selectedPkg.amount,
