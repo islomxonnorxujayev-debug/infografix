@@ -118,7 +118,7 @@ serve(async (req) => {
         plan: profile.plan,
         created_at: profile.created_at,
       },
-      generations: generations || [],
+      generations: resolvedGenerations,
       payments: payments || [],
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

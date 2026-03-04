@@ -109,6 +109,13 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [processing]);
 
+  // Helper to resolve storage path to signed URL
+  const getSignedUrl = async (path: string): Promise<string> => {
+    if (!path || path.startsWith("http")) return path;
+    const { data } = await supabase.storage.from("product-images").createSignedUrl(path, 60 * 60 * 24); // 24h
+    return data?.signedUrl || path;
+  };
+
   // Load web user data
   useEffect(() => {
     if (isTelegram || !user) return;
@@ -118,7 +125,16 @@ const Dashboard = () => {
     supabase.from("generations")
       .select("id, result_url, original_url, marketplace, status, created_at")
       .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50)
-      .then(({ data }) => { if (data) setGenerations(data); });
+      .then(async ({ data }) => {
+        if (!data) return;
+        // Resolve storage paths to signed URLs
+        const resolved = await Promise.all(data.map(async (g) => ({
+          ...g,
+          result_url: g.result_url ? await getSignedUrl(g.result_url) : null,
+          original_url: g.original_url ? await getSignedUrl(g.original_url) : null,
+        })));
+        setGenerations(resolved);
+      });
   }, [user, isTelegram]);
 
   const loadTelegramData = async (telegramId: number, initData: string) => {
