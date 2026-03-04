@@ -560,7 +560,7 @@ const Dashboard = () => {
             {/* Title */}
             <div className="text-center">
               <h2 className="font-display text-xl font-bold text-foreground">Mahsulot rasmini yuklang</h2>
-              <p className="text-sm text-muted-foreground mt-1">JPG, PNG yoki WEBP — 5MB gacha</p>
+              <p className="text-sm text-muted-foreground mt-1">Faqat PNG format — 10MB gacha</p>
             </div>
 
             {/* Upload area */}
