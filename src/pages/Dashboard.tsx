@@ -510,12 +510,17 @@ const Dashboard = () => {
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
             <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
             <p className="font-display font-bold text-foreground text-lg">Qayta ishlanmoqda...</p>
-            <p className="text-xs text-muted-foreground mt-2">30-60 soniya kuting</p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="font-mono text-2xl font-bold text-primary">{elapsedSeconds}</span>
+              <span className="text-sm text-muted-foreground">soniya</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">Odatda 30-60 soniya davom etadi</p>
             <div className="mt-4 space-y-1 text-left text-xs text-muted-foreground">
-              <p>✅ Rasm tahlil qilinmoqda</p>
-              <p>✅ Studio sahna yaratilmoqda</p>
-              <p>✅ Professional yoritish qo'shilmoqda</p>
-              <p>✅ Sifat tekshirilmoqda</p>
+              <p>{elapsedSeconds >= 0 ? "✅" : "⏳"} Rasm tahlil qilinmoqda</p>
+              <p>{elapsedSeconds >= 5 ? "✅" : "⏳"} Sahna yaratilmoqda</p>
+              <p>{elapsedSeconds >= 15 ? "✅" : "⏳"} Professional yoritish qo'shilmoqda</p>
+              <p>{elapsedSeconds >= 25 ? "✅" : "⏳"} Sifat tekshirilmoqda</p>
             </div>
           </div>
         ) : resultUrl ? (
