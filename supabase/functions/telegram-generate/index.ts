@@ -113,7 +113,11 @@ serve(async (req) => {
 
     // Upload original image to storage
     const base64Clean = image_base64.replace(/^data:image\/\w+;base64,/, "");
-    const imageBytes = Uint8Array.from(atob(base64Clean), (c) => c.charCodeAt(0));
+    const rawBinary = atob(base64Clean);
+    const imageBytes = new Uint8Array(rawBinary.length);
+    for (let i = 0; i < rawBinary.length; i++) {
+      imageBytes[i] = rawBinary.charCodeAt(i);
+    }
     const genId = crypto.randomUUID();
     const originalPath = `${profile.id}/originals/${genId}.png`;
 
@@ -206,7 +210,11 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
     }
 
     const resultClean = resultBase64.replace(/^data:image\/\w+;base64,/, "");
-    const resultBytes = Uint8Array.from(atob(resultClean), (c) => c.charCodeAt(0));
+    const rawResult = atob(resultClean);
+    const resultBytes = new Uint8Array(rawResult.length);
+    for (let i = 0; i < rawResult.length; i++) {
+      resultBytes[i] = rawResult.charCodeAt(i);
+    }
     const resultPath = `${profile.id}/results/${genId}.png`;
 
     await supabase.storage.from("product-images").upload(resultPath, resultBytes, {

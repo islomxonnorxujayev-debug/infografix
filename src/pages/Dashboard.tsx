@@ -364,9 +364,10 @@ const Dashboard = () => {
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
             imageUrl: urlData.publicUrl,
-            modelType: modelType,
-            sceneType: sceneType,
+            modelType,
+            sceneType,
             generationId: genData.id,
+            language: "uz",
           },
         });
 
@@ -708,14 +709,40 @@ const Dashboard = () => {
                             </div>
                           )}
                         </div>
-                        <div className="p-2 text-xs">
+                        <div className="p-2 text-xs space-y-1.5">
                           <p className="text-foreground font-medium truncate">{g.marketplace || "Studio"}</p>
-                          <div className="flex items-center justify-between mt-0.5">
+                          <div className="flex items-center justify-between">
                             <span className={g.status === "completed" ? "text-primary" : "text-muted-foreground"}>
                               {g.status === "completed" ? "✅" : "⏳"}
                             </span>
                             <span className="text-muted-foreground">{new Date(g.created_at).toLocaleDateString("uz-UZ")}</span>
                           </div>
+                          {g.result_url && g.status === "completed" && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const res = await fetch(g.result_url!, { mode: 'cors' });
+                                  if (!res.ok) throw new Error();
+                                  const blob = await res.blob();
+                                  const url = URL.createObjectURL(new Blob([blob], { type: 'image/png' }));
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = `infografix-1080x1440-${g.id.slice(0, 8)}.png`;
+                                  a.style.display = "none";
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+                                } catch {
+                                  window.open(g.result_url!, '_blank');
+                                }
+                              }}
+                              className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors"
+                            >
+                              <Download className="h-3 w-3" />
+                              Yuklab olish
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
