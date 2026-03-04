@@ -752,23 +752,9 @@ const Dashboard = () => {
                           </div>
                           {g.result_url && g.status === "completed" && (
                             <button
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                try {
-                                  const res = await fetch(g.result_url!, { mode: 'cors' });
-                                  if (!res.ok) throw new Error();
-                                  const blob = await res.blob();
-                                  const url = URL.createObjectURL(new Blob([blob], { type: 'image/png' }));
-                                  const a = document.createElement("a");
-                                  a.href = url;
-                                  a.download = `infografix-1080x1440-${g.id.slice(0, 8)}.png`;
-                                  a.style.display = "none";
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-                                } catch {
-                                  window.open(g.result_url!, '_blank');
-                                }
+                                handleDownload(g.result_url!);
                               }}
                               className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors"
                             >
