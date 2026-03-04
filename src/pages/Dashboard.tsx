@@ -99,6 +99,16 @@ const Dashboard = () => {
     }
   }, []);
 
+  // Timer for processing
+  useEffect(() => {
+    if (!processing) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [processing]);
+
   // Load web user data
   useEffect(() => {
     if (isTelegram || !user) return;
