@@ -559,17 +559,77 @@ const Dashboard = () => {
               />
             </label>
 
-            {/* Generate button */}
+            {/* Options - only show after file uploaded */}
             {uploadedFile && (
-              <Button
-                className="w-full bg-primary hover:bg-primary/90"
-                size="lg"
-                onClick={handleGenerate}
-                disabled={credits <= 0}
-              >
-                <Sparkles className="mr-2 h-5 w-5" />
-                {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
-              </Button>
+              <div className="space-y-3">
+                {/* Model type */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Model turi</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "without-model", label: "📦 Modelsiz", desc: "Faqat mahsulot" },
+                      { value: "with-model", label: "🧑 Modelli", desc: "Model bilan" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setModelType(opt.value)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          modelType === opt.value
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-border bg-card hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scene type */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Sahna turi</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: "studio", label: "🎬", name: "Studiya" },
+                      { value: "nature", label: "🌿", name: "Tabiat" },
+                      { value: "lifestyle", label: "🏠", name: "Lifestyle" },
+                      { value: "minimalist", label: "⬜", name: "Minimalist" },
+                      { value: "infographic", label: "📊", name: "Infografika" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setSceneType(opt.value)}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          sceneType === opt.value
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-border bg-card hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-lg">{opt.label}</p>
+                        <p className="text-[10px] font-medium text-foreground">{opt.name}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fixed size info */}
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+                  <ImageIcon className="h-3 w-3" />
+                  <span>Rasm o'lchami: 1080 × 1440 px (3:4)</span>
+                </div>
+
+                {/* Generate button */}
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90"
+                  size="lg"
+                  onClick={handleGenerate}
+                  disabled={credits <= 0}
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
+                </Button>
+              </div>
             )}
           </div>
         )}
