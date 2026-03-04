@@ -459,27 +459,37 @@ const Dashboard = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleDownload = async () => {
-    if (!resultUrl) return;
+  const handleDownload = async (url?: string) => {
+    const downloadUrl = url || resultUrl;
+    if (!downloadUrl) return;
+
+    // In Telegram WebApp, use openLink to open in system browser for download
+    if (isTelegram && window.Telegram?.WebApp) {
+      try {
+        window.Telegram.WebApp.openLink?.(downloadUrl);
+      } catch {
+        // Fallback: open via window
+        window.open(downloadUrl, '_blank');
+      }
+      toast.info("Rasm tashqi brauzerda ochildi. Saqlash uchun rasmni bosib turing.");
+      return;
+    }
+
+    // Web flow: try fetch+blob, fallback to direct link
     try {
-      const response = await fetch(resultUrl, { mode: 'cors' });
+      const response = await fetch(downloadUrl, { mode: 'cors' });
       if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
-      const pngBlob = new Blob([blob], { type: 'image/png' });
-      const url = URL.createObjectURL(pngBlob);
+      const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'image/png' }));
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = `infografix-1080x1440-${Date.now()}.png`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 100);
     } catch {
-      // Fallback: open in new tab for manual save
-      window.open(resultUrl, '_blank');
+      window.open(downloadUrl, '_blank');
       toast.info("Rasm yangi oynada ochildi. Ushlab turish va saqlash mumkin.");
     }
   };
