@@ -337,8 +337,8 @@ const Dashboard = () => {
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
             imageUrl: urlData.publicUrl,
-            modelType: "without-model",
-            sceneType: "studio",
+            modelType: modelType,
+            sceneType: sceneType,
             generationId: genData.id,
           },
         });
