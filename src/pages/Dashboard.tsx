@@ -444,7 +444,7 @@ const Dashboard = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `infografix-${Date.now()}.png`;
+      a.download = `infografix-1080x1440-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
