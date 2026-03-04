@@ -65,6 +65,8 @@ const Dashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [modelType, setModelType] = useState<"with-model" | "without-model">("without-model");
+  const [sceneType, setSceneType] = useState<string>("studio");
 
   // Login state (for non-Telegram)
   const [loginEmail, setLoginEmail] = useState("");
@@ -251,14 +253,14 @@ const Dashboard = () => {
       try {
         const base64 = await fileToBase64(uploadedFile);
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
+          const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               init_data: window.Telegram?.WebApp?.initData || "",
               image_base64: base64,
-              scene_type: "studio",
-              model_type: "without-model",
+              scene_type: sceneType,
+              model_type: modelType,
             }),
         });
         const data = await res.json();
@@ -315,9 +317,9 @@ const Dashboard = () => {
           .insert({
             user_id: user.id,
             original_url: urlData.publicUrl,
-            marketplace: "Web App / Studio",
-            style_preset: "studio",
-            enhancements: { model: "without-model", scene: "studio" },
+            marketplace: `${sceneType} / ${modelType}`,
+            style_preset: sceneType,
+            enhancements: { model: modelType, scene: sceneType },
             status: "processing",
           })
           .select("id")
@@ -335,8 +337,8 @@ const Dashboard = () => {
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
             imageUrl: urlData.publicUrl,
-            modelType: "without-model",
-            sceneType: "studio",
+            modelType: modelType,
+            sceneType: sceneType,
             generationId: genData.id,
           },
         });
@@ -557,17 +559,77 @@ const Dashboard = () => {
               />
             </label>
 
-            {/* Generate button */}
+            {/* Options - only show after file uploaded */}
             {uploadedFile && (
-              <Button
-                className="w-full bg-primary hover:bg-primary/90"
-                size="lg"
-                onClick={handleGenerate}
-                disabled={credits <= 0}
-              >
-                <Sparkles className="mr-2 h-5 w-5" />
-                {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
-              </Button>
+              <div className="space-y-3">
+                {/* Model type */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Model turi</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "without-model", label: "📦 Modelsiz", desc: "Faqat mahsulot" },
+                      { value: "with-model", label: "🧑 Modelli", desc: "Model bilan" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setModelType(opt.value)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          modelType === opt.value
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-border bg-card hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-foreground">{opt.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scene type */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Sahna turi</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: "studio", label: "🎬", name: "Studiya" },
+                      { value: "nature", label: "🌿", name: "Tabiat" },
+                      { value: "lifestyle", label: "🏠", name: "Lifestyle" },
+                      { value: "minimalist", label: "⬜", name: "Minimalist" },
+                      { value: "infographic", label: "📊", name: "Infografika" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setSceneType(opt.value)}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          sceneType === opt.value
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-border bg-card hover:border-primary/30"
+                        }`}
+                      >
+                        <p className="text-lg">{opt.label}</p>
+                        <p className="text-[10px] font-medium text-foreground">{opt.name}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fixed size info */}
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+                  <ImageIcon className="h-3 w-3" />
+                  <span>Rasm o'lchami: 1080 × 1440 px (3:4)</span>
+                </div>
+
+                {/* Generate button */}
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90"
+                  size="lg"
+                  onClick={handleGenerate}
+                  disabled={credits <= 0}
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  {credits <= 0 ? "Kredit tugadi" : "Rasm yaratish (1 kredit)"}
+                </Button>
+              </div>
             )}
           </div>
         )}
