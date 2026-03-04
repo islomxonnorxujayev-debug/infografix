@@ -210,7 +210,11 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
     }
 
     const resultClean = resultBase64.replace(/^data:image\/\w+;base64,/, "");
-    const resultBytes = Uint8Array.from(atob(resultClean), (c) => c.charCodeAt(0));
+    const rawResult = atob(resultClean);
+    const resultBytes = new Uint8Array(rawResult.length);
+    for (let i = 0; i < rawResult.length; i++) {
+      resultBytes[i] = rawResult.charCodeAt(i);
+    }
     const resultPath = `${profile.id}/results/${genId}.png`;
 
     await supabase.storage.from("product-images").upload(resultPath, resultBytes, {
