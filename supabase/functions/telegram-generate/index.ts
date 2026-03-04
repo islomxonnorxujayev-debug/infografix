@@ -115,11 +115,11 @@ serve(async (req) => {
     const base64Clean = image_base64.replace(/^data:image\/\w+;base64,/, "");
     const imageBytes = Uint8Array.from(atob(base64Clean), (c) => c.charCodeAt(0));
     const genId = crypto.randomUUID();
-    const originalPath = `${profile.id}/originals/${genId}.jpg`;
+    const originalPath = `${profile.id}/originals/${genId}.png`;
 
     const { error: uploadErr } = await supabase.storage
       .from("product-images")
-      .upload(originalPath, imageBytes, { contentType: "image/jpeg", upsert: true });
+      .upload(originalPath, imageBytes, { contentType: "image/png", upsert: true });
 
     if (uploadErr) {
       return new Response(JSON.stringify({ error: "Rasmni saqlashda xatolik" }), {
