@@ -181,7 +181,7 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: originalUrlData.publicUrl } },
+            { type: "image_url", image_url: { url: originalSignedData.signedUrl } },
           ],
         }],
         modalities: ["image", "text"],
