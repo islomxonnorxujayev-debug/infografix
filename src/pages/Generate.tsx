@@ -122,8 +122,21 @@ const Generate = () => {
   const handleDownload = async () => {
     if (!resultUrl) return;
     try {
-      const response = await fetch(resultUrl);
-      const blob = await response.blob();
+      const match = resultUrl.match(/\/product-images\/(.+)$/);
+      if (!match) {
+        window.open(resultUrl, '_blank');
+        return;
+      }
+
+      toast.loading(t("gen.downloading") || "Yuklab olinmoqda...", { id: "dl" });
+
+      const response = await supabase.functions.invoke("download-proxy", {
+        body: { storagePath: match[1] },
+      });
+
+      if (response.error || !response.data) throw new Error("Download failed");
+
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'image/png' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -132,9 +145,9 @@ const Generate = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success(t("gen.downloaded"));
+      toast.success(t("gen.downloaded"), { id: "dl" });
     } catch {
-      toast.error(t("gen.downloadError"));
+      toast.error(t("gen.downloadError"), { id: "dl" });
     }
   };
 
