@@ -204,7 +204,7 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time.`;
 
     await supabaseAdmin
       .from("generations")
-      .update({ result_url: publicUrlData.publicUrl, status: "completed" })
+      .update({ result_url: resultPath, status: "completed" })
       .eq("id", generationId);
 
     await supabaseAdmin
