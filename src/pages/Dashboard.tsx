@@ -339,6 +339,10 @@ const Dashboard = () => {
         }
 
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        const originalUrl = urlData.publicUrl;
+        // For AI, we need a signed URL since bucket is private
+        const { data: signedData } = await supabase.storage.from("product-images").createSignedUrl(filePath, 60 * 30);
+        const aiImageUrl = signedData?.signedUrl || originalUrl;
         console.log("Step 2: Creating generation record...");
 
         const { data: genData, error: genError } = await supabase
