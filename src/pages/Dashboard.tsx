@@ -134,38 +134,41 @@ const Dashboard = () => {
 
   const handleAdminAccess = async () => {
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/verify-admin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await res.json();
-      if (!data.valid) {
-        toast.error("Parol noto'g'ri!");
-        setPassword("");
+      if (!adminEmail || !password) {
+        toast.error("Email va parol kiriting");
         return;
       }
 
-      if (!data.adminEmail) {
-        toast.error("Admin akkaunt topilmadi");
-        setPassword("");
-        return;
-      }
-
-      const { error } = await signIn(data.adminEmail, password);
+      const { error } = await signIn(adminEmail, password);
       if (error) {
         toast.error("Admin login xatoligi: " + error.message);
-        setPassword("");
+        return;
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        toast.error("Sessiya tekshirib bo'lmadi");
+        await signOut();
+        return;
+      }
+
+      const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+        _user_id: authData.user.id,
+        _role: "admin",
+      });
+
+      if (roleError || !isAdmin) {
+        await signOut();
+        toast.error("Admin ruxsati yo'q");
         return;
       }
 
       setShowAdminDialog(false);
+      setAdminEmail("");
       setPassword("");
       navigate("/admin");
     } catch {
       toast.error("Xatolik yuz berdi");
-      setPassword("");
     }
   };
 
