@@ -587,7 +587,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={handleDownload}>
+              <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={() => handleDownload()}>
                 <Download className="mr-2 h-4 w-4" />
                 Yuklab olish
               </Button>
