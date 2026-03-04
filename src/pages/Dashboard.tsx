@@ -369,7 +369,7 @@ const Dashboard = () => {
         console.log("Step 3: Calling AI process-image...");
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
-            imageUrl: urlData.publicUrl,
+            imageUrl: aiImageUrl,
             modelType,
             sceneType,
             generationId: genData.id,
