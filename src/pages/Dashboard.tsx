@@ -439,18 +439,25 @@ const Dashboard = () => {
   const handleDownload = async () => {
     if (!resultUrl) return;
     try {
-      const response = await fetch(resultUrl);
+      const response = await fetch(resultUrl, { mode: 'cors' });
+      if (!response.ok) throw new Error('Download failed');
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const pngBlob = new Blob([blob], { type: 'image/png' });
+      const url = URL.createObjectURL(pngBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `infografix-1080x1440-${Date.now()}.png`;
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
     } catch {
-      toast.error("Yuklab olishda xatolik");
+      // Fallback: open in new tab for manual save
+      window.open(resultUrl, '_blank');
+      toast.info("Rasm yangi oynada ochildi. Ushlab turish va saqlash mumkin.");
     }
   };
 
