@@ -162,7 +162,11 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time.`;
     }
 
     const base64Data = resultImageBase64.replace(/^data:image\/\w+;base64,/, "");
-    const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    const rawBinary = atob(base64Data);
+    const binaryData = new Uint8Array(rawBinary.length);
+    for (let i = 0; i < rawBinary.length; i++) {
+      binaryData[i] = rawBinary.charCodeAt(i);
+    }
     const resultPath = `${user.id}/results/${generationId}.png`;
 
     const { error: uploadError } = await supabaseAdmin.storage
