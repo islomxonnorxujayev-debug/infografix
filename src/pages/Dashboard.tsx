@@ -720,8 +720,5 @@ const AdminDialog = ({ open, onOpenChange, adminEmail, setAdminEmail, password, 
     </DialogContent>
   </Dialog>
 );
-    </DialogContent>
-  </Dialog>
-);
 
 export default Dashboard;
