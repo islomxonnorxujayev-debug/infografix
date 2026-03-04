@@ -58,7 +58,16 @@ serve(async (req) => {
       });
     }
 
-    const { imageUrl, modelType, sceneType, generationId, language } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { imageUrl, modelType, sceneType, generationId, language } = body;
 
     if (!imageUrl || !generationId) {
       return new Response(JSON.stringify({ error: "Missing imageUrl or generationId" }), {
