@@ -144,10 +144,10 @@ const PaymentCard = ({
     }`}>
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Screenshot */}
-        {req.screenshot_url && (
-          <a href={req.screenshot_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+        {screenshotSrc && (
+          <a href={screenshotSrc} target="_blank" rel="noopener noreferrer" className="shrink-0">
             <img
-              src={req.screenshot_url}
+              src={screenshotSrc}
               alt="Screenshot"
               className="w-full sm:w-16 sm:h-16 h-40 rounded-lg object-cover border border-border hover:opacity-80 transition-opacity"
             />
