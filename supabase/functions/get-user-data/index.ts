@@ -87,6 +87,22 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(50);
 
+    // Resolve storage paths to signed URLs
+    const resolvedGenerations = await Promise.all(
+      (generations || []).map(async (g: any) => {
+        const resolveUrl = async (path: string | null) => {
+          if (!path || path.startsWith("http")) return path;
+          const { data } = await supabase.storage.from("product-images").createSignedUrl(path, 60 * 60 * 24);
+          return data?.signedUrl || path;
+        };
+        return {
+          ...g,
+          result_url: await resolveUrl(g.result_url),
+          original_url: await resolveUrl(g.original_url),
+        };
+      })
+    );
+
     const { data: payments } = await supabase
       .from("payment_requests")
       .select("id, package_name, credits, amount, status, created_at")
