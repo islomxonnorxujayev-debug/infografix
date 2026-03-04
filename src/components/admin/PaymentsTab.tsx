@@ -129,10 +129,11 @@ const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }
 };
 
 const PaymentCard = ({
-  req, profiles, onApprove, onReject
+  req, profiles, onApprove, onReject, screenshotSrc
 }: {
   req: PaymentRequest; profiles: Profile[];
   onApprove: (r: PaymentRequest) => void; onReject: (r: PaymentRequest) => void;
+  screenshotSrc?: string;
 }) => {
   const status = statusConfig[req.status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = status.icon;
