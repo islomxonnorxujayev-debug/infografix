@@ -698,8 +698,9 @@ const Dashboard = () => {
 };
 
 // ==================== Admin Dialog ====================
-const AdminDialog = ({ open, onOpenChange, password, setPassword, onSubmit }: {
+const AdminDialog = ({ open, onOpenChange, adminEmail, setAdminEmail, password, setPassword, onSubmit }: {
   open: boolean; onOpenChange: (v: boolean) => void;
+  adminEmail: string; setAdminEmail: (v: string) => void;
   password: string; setPassword: (v: string) => void; onSubmit: () => void;
 }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
@@ -709,12 +710,16 @@ const AdminDialog = ({ open, onOpenChange, password, setPassword, onSubmit }: {
           <Shield className="h-4 w-4 text-primary" />
           Admin kirish
         </DialogTitle>
-        <DialogDescription className="text-xs">Parolni kiriting</DialogDescription>
+        <DialogDescription className="text-xs">Admin email va parolni kiriting</DialogDescription>
       </DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
-        <Input type="password" placeholder="Parol" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+        <Input type="email" placeholder="Admin email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} autoFocus />
+        <Input type="password" placeholder="Parol" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" size="sm">Kirish</Button>
       </form>
+    </DialogContent>
+  </Dialog>
+);
     </DialogContent>
   </Dialog>
 );
