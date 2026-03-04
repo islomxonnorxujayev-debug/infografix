@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { CheckCircle, XCircle, Clock, CreditCard, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Profile {
   id: string;
@@ -58,6 +60,29 @@ const statusConfig = {
 const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }: PaymentsTabProps) => {
   const pending = paymentRequests.filter(r => r.status === "pending");
   const history = paymentRequests.filter(r => r.status !== "pending");
+  const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const resolveScreenshotUrls = async () => {
+      const entries = await Promise.all(paymentRequests.map(async (req) => {
+        const ref = req.screenshot_url;
+        if (!ref) return [req.id, ""] as const;
+        if (ref.startsWith("http://") || ref.startsWith("https://")) return [req.id, ref] as const;
+
+        const path = ref.replace(/^payment-screenshots\//, "");
+        const { data, error } = await supabase.storage
+          .from("payment-screenshots")
+          .createSignedUrl(path, 60 * 60);
+
+        if (error || !data?.signedUrl) return [req.id, ""] as const;
+        return [req.id, data.signedUrl] as const;
+      }));
+
+      setScreenshotUrls(Object.fromEntries(entries.filter(([, url]) => !!url)));
+    };
+
+    resolveScreenshotUrls();
+  }, [paymentRequests]);
 
   if (!loading && paymentRequests.length === 0) {
     return (
@@ -82,7 +107,7 @@ const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }
           </div>
           <div className="space-y-3">
             {pending.map(req => (
-              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} />
+              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} screenshotSrc={screenshotUrls[req.id]} />
             ))}
           </div>
         </div>
@@ -94,7 +119,7 @@ const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Tarix</h3>
           <div className="space-y-2">
             {history.map(req => (
-              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} />
+              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} screenshotSrc={screenshotUrls[req.id]} />
             ))}
           </div>
         </div>
@@ -104,10 +129,11 @@ const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }
 };
 
 const PaymentCard = ({
-  req, profiles, onApprove, onReject
+  req, profiles, onApprove, onReject, screenshotSrc
 }: {
   req: PaymentRequest; profiles: Profile[];
   onApprove: (r: PaymentRequest) => void; onReject: (r: PaymentRequest) => void;
+  screenshotSrc?: string;
 }) => {
   const status = statusConfig[req.status as keyof typeof statusConfig] || statusConfig.pending;
   const StatusIcon = status.icon;
@@ -118,10 +144,10 @@ const PaymentCard = ({
     }`}>
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Screenshot */}
-        {req.screenshot_url && (
-          <a href={req.screenshot_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+        {screenshotSrc && (
+          <a href={screenshotSrc} target="_blank" rel="noopener noreferrer" className="shrink-0">
             <img
-              src={req.screenshot_url}
+              src={screenshotSrc}
               alt="Screenshot"
               className="w-full sm:w-16 sm:h-16 h-40 rounded-lg object-cover border border-border hover:opacity-80 transition-opacity"
             />

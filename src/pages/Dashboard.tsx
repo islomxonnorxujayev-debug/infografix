@@ -48,6 +48,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const [showAdminDialog, setShowAdminDialog] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
   const [password, setPassword] = useState("");
 
   // Telegram state
@@ -133,38 +134,41 @@ const Dashboard = () => {
 
   const handleAdminAccess = async () => {
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/verify-admin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const data = await res.json();
-      if (!data.valid) {
-        toast.error("Parol noto'g'ri!");
-        setPassword("");
+      if (!adminEmail || !password) {
+        toast.error("Email va parol kiriting");
         return;
       }
 
-      if (!data.adminEmail) {
-        toast.error("Admin akkaunt topilmadi");
-        setPassword("");
-        return;
-      }
-
-      const { error } = await signIn(data.adminEmail, password);
+      const { error } = await signIn(adminEmail, password);
       if (error) {
         toast.error("Admin login xatoligi: " + error.message);
-        setPassword("");
+        return;
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        toast.error("Sessiya tekshirib bo'lmadi");
+        await signOut();
+        return;
+      }
+
+      const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+        _user_id: authData.user.id,
+        _role: "admin",
+      });
+
+      if (roleError || !isAdmin) {
+        await signOut();
+        toast.error("Admin ruxsati yo'q");
         return;
       }
 
       setShowAdminDialog(false);
+      setAdminEmail("");
       setPassword("");
       navigate("/admin");
     } catch {
       toast.error("Xatolik yuz berdi");
-      setPassword("");
     }
   };
 
@@ -218,7 +222,7 @@ const Dashboard = () => {
             </form>
           </div>
         </div>
-        <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
+        <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
       </div>
     );
   }
@@ -688,14 +692,15 @@ const Dashboard = () => {
         )}
       </div>
 
-      <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
+      <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
     </div>
   );
 };
 
 // ==================== Admin Dialog ====================
-const AdminDialog = ({ open, onOpenChange, password, setPassword, onSubmit }: {
+const AdminDialog = ({ open, onOpenChange, adminEmail, setAdminEmail, password, setPassword, onSubmit }: {
   open: boolean; onOpenChange: (v: boolean) => void;
+  adminEmail: string; setAdminEmail: (v: string) => void;
   password: string; setPassword: (v: string) => void; onSubmit: () => void;
 }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
@@ -705,10 +710,11 @@ const AdminDialog = ({ open, onOpenChange, password, setPassword, onSubmit }: {
           <Shield className="h-4 w-4 text-primary" />
           Admin kirish
         </DialogTitle>
-        <DialogDescription className="text-xs">Parolni kiriting</DialogDescription>
+        <DialogDescription className="text-xs">Admin email va parolni kiriting</DialogDescription>
       </DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
-        <Input type="password" placeholder="Parol" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+        <Input type="email" placeholder="Admin email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} autoFocus />
+        <Input type="password" placeholder="Parol" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90" size="sm">Kirish</Button>
       </form>
     </DialogContent>

@@ -10,53 +10,55 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const ADMIN_PASSWORD = Deno.env.get("ADMIN_PASSWORD");
-    if (!ADMIN_PASSWORD) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ valid: false, error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
       return new Response(JSON.stringify({ valid: false, error: "Server configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { password } = await req.json();
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    if (!password || typeof password !== "string" || password.length > 100) {
-      return new Response(JSON.stringify({ valid: false }), {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAuth.auth.getUser();
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ valid: false, error: "Invalid auth" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const valid = password === ADMIN_PASSWORD;
-    if (!valid) {
-      return new Response(JSON.stringify({ valid: false }), {
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc("has_role", {
+      _user_id: user.id,
+      _role: "admin",
+    });
+
+    if (roleError) {
+      return new Response(JSON.stringify({ valid: false, error: "Role check failed" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { data: adminRole } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "admin")
-      .limit(1)
-      .maybeSingle();
-
-    let adminEmail: string | null = null;
-    if (adminRole?.user_id) {
-      const { data: adminProfile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("user_id", adminRole.user_id)
-        .maybeSingle();
-
-      adminEmail = adminProfile?.email ?? null;
-    }
-
-    return new Response(JSON.stringify({ valid: true, adminEmail }), {
+    return new Response(JSON.stringify({ valid: !!isAdmin }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch {
