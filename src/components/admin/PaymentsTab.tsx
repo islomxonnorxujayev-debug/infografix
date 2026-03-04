@@ -60,6 +60,29 @@ const statusConfig = {
 const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }: PaymentsTabProps) => {
   const pending = paymentRequests.filter(r => r.status === "pending");
   const history = paymentRequests.filter(r => r.status !== "pending");
+  const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const resolveScreenshotUrls = async () => {
+      const entries = await Promise.all(paymentRequests.map(async (req) => {
+        const ref = req.screenshot_url;
+        if (!ref) return [req.id, ""] as const;
+        if (ref.startsWith("http://") || ref.startsWith("https://")) return [req.id, ref] as const;
+
+        const path = ref.replace(/^payment-screenshots\//, "");
+        const { data, error } = await supabase.storage
+          .from("payment-screenshots")
+          .createSignedUrl(path, 60 * 60);
+
+        if (error || !data?.signedUrl) return [req.id, ""] as const;
+        return [req.id, data.signedUrl] as const;
+      }));
+
+      setScreenshotUrls(Object.fromEntries(entries.filter(([, url]) => !!url)));
+    };
+
+    resolveScreenshotUrls();
+  }, [paymentRequests]);
 
   if (!loading && paymentRequests.length === 0) {
     return (
