@@ -122,30 +122,46 @@ const Generate = () => {
   const handleDownload = async () => {
     if (!resultUrl) return;
     try {
+      toast.loading(t("gen.downloading") || "Yuklab olinmoqda...", { id: "dl" });
+
       const match = resultUrl.match(/\/product-images\/(.+)$/);
-      if (!match) {
-        window.open(resultUrl, '_blank');
+      let directUrl = resultUrl;
+
+      if (match) {
+        const cleanPath = match[1].split("?")[0];
+        const { data: signedData } = await supabase.storage
+          .from("product-images")
+          .createSignedUrl(cleanPath, 300, { download: true });
+        if (signedData?.signedUrl) {
+          directUrl = signedData.signedUrl;
+        }
+      }
+
+      // Telegram: open in system browser
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(directUrl);
+        toast.success("Rasm brauzerda ochildi. Bosib turing va saqlang.", { id: "dl" });
         return;
       }
 
-      toast.loading(t("gen.downloading") || "Yuklab olinmoqda...", { id: "dl" });
-
-      const response = await supabase.functions.invoke("download-proxy", {
-        body: { storagePath: match[1] },
-      });
-
-      if (response.error || !response.data) throw new Error("Download failed");
-
-      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'image/png' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `product-${generationId || "image"}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(t("gen.downloaded"), { id: "dl" });
+      // Web: fetch blob and trigger download
+      try {
+        const response = await fetch(directUrl);
+        if (!response.ok) throw new Error("fetch failed");
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `infografix-${generationId || Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(t("gen.downloaded"), { id: "dl" });
+      } catch {
+        window.open(directUrl, '_blank');
+        toast.success("Rasm yangi oynada ochildi.", { id: "dl" });
+      }
     } catch {
       toast.error(t("gen.downloadError"), { id: "dl" });
     }

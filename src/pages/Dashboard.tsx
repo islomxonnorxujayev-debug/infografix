@@ -481,44 +481,51 @@ const Dashboard = () => {
     if (!downloadUrl) return;
 
     try {
-      // Extract storage path and use download proxy to avoid CORS
+      toast.loading("Yuklab olinmoqda...", { id: "download" });
+
+      // Get a signed URL for the file
       const storagePath = extractStoragePath(downloadUrl);
-      if (!storagePath) {
-        // Fallback for URLs that don't match pattern
-        window.open(downloadUrl, '_blank');
-        toast.info("Rasm yangi oynada ochildi.");
+      let directUrl = downloadUrl;
+
+      if (storagePath) {
+        // Clean the path - remove query params from signed URLs
+        const cleanPath = storagePath.split("?")[0];
+        const { data: signedData } = await supabase.storage
+          .from("product-images")
+          .createSignedUrl(cleanPath, 300, { download: true });
+        if (signedData?.signedUrl) {
+          directUrl = signedData.signedUrl;
+        }
+      }
+
+      // In Telegram WebApp, open in system browser so user can save to gallery
+      if (isTelegram && window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(directUrl);
+        toast.success("Rasm brauzerda ochildi. Rasmni bosib turing va saqlang.", { id: "download" });
         return;
       }
 
-      toast.loading("Yuklab olinmoqda...", { id: "download" });
-
-      const response = await supabase.functions.invoke("download-proxy", {
-        body: { storagePath },
-      });
-
-      if (response.error || !response.data) {
-        throw new Error("Download failed");
+      // Web: try blob download
+      try {
+        const response = await fetch(directUrl);
+        if (!response.ok) throw new Error("fetch failed");
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `infografix-${Date.now()}.png`;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 100);
+        toast.success("Yuklab olindi!", { id: "download" });
+      } catch {
+        // Fallback: open in new tab
+        window.open(directUrl, '_blank');
+        toast.success("Rasm yangi oynada ochildi.", { id: "download" });
       }
-
-      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'image/png' });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `infografix-${Date.now()}.png`;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 100);
-      toast.success("Yuklab olindi!", { id: "download" });
     } catch {
-      // Fallback: open in browser
-      if (isTelegram && window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(downloadUrl);
-        toast.info("Rasm tashqi brauzerda ochildi.", { id: "download" });
-      } else {
-        window.open(downloadUrl, '_blank');
-        toast.info("Rasm yangi oynada ochildi.", { id: "download" });
-      }
+      toast.error("Yuklab olishda xatolik", { id: "download" });
     }
   };
 
