@@ -317,9 +317,9 @@ const Dashboard = () => {
           .insert({
             user_id: user.id,
             original_url: urlData.publicUrl,
-            marketplace: "Web App / Studio",
-            style_preset: "studio",
-            enhancements: { model: "without-model", scene: "studio" },
+            marketplace: `${sceneType} / ${modelType}`,
+            style_preset: sceneType,
+            enhancements: { model: modelType, scene: sceneType },
             status: "processing",
           })
           .select("id")
