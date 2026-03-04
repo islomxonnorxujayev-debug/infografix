@@ -243,8 +243,14 @@ const Dashboard = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Rasm juda katta (max 5MB)");
+    if (!file.type.includes("png")) {
+      toast.error("Faqat PNG formatdagi rasm qabul qilinadi");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Rasm juda katta (max 10MB)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     setUploadedFile(file);
@@ -438,7 +444,7 @@ const Dashboard = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `infografix-${Date.now()}.png`;
+      a.download = `infografix-1080x1440-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -554,7 +560,7 @@ const Dashboard = () => {
             {/* Title */}
             <div className="text-center">
               <h2 className="font-display text-xl font-bold text-foreground">Mahsulot rasmini yuklang</h2>
-              <p className="text-sm text-muted-foreground mt-1">JPG, PNG yoki WEBP — 5MB gacha</p>
+              <p className="text-sm text-muted-foreground mt-1">Faqat PNG format — 10MB gacha</p>
             </div>
 
             {/* Upload area */}
@@ -580,7 +586,7 @@ const Dashboard = () => {
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept=".jpg,.jpeg,.png,.webp"
+                accept=".png,image/png"
                 onChange={handleFileChange}
               />
             </label>
