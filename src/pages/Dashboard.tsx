@@ -586,7 +586,7 @@ const Dashboard = () => {
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept=".jpg,.jpeg,.png,.webp"
+                accept=".png,image/png"
                 onChange={handleFileChange}
               />
             </label>
