@@ -44,15 +44,17 @@ const Balance = () => {
   const isTelegram = !!telegramUser;
 
   const loadTelegramProfile = async (telegramId: number) => {
+    const initData = window.Telegram?.WebApp?.initData || "";
+    if (!initData) {
+      console.error("No Telegram initData - cannot authenticate");
+      return;
+    }
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-      const initData = window.Telegram?.WebApp?.initData || "";
-      const body: any = { telegram_id: telegramId };
-      if (initData) body.init_data = initData;
       const res = await fetch(`https://${projectId}.supabase.co/functions/v1/get-user-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ init_data: initData }),
       });
       if (res.ok) {
         const data = await res.json();
