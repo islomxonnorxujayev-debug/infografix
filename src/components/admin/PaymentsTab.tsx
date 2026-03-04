@@ -107,7 +107,7 @@ const PaymentsTab = ({ paymentRequests, profiles, onApprove, onReject, loading }
           </div>
           <div className="space-y-3">
             {pending.map(req => (
-              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} />
+              <PaymentCard key={req.id} req={req} profiles={profiles} onApprove={onApprove} onReject={onReject} screenshotSrc={screenshotUrls[req.id]} />
             ))}
           </div>
         </div>
