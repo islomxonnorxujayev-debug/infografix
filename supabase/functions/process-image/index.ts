@@ -189,9 +189,18 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time.`;
       });
     }
 
-    const { data: publicUrlData } = supabaseAdmin.storage
+    const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin.storage
       .from("product-images")
-      .getPublicUrl(resultPath);
+      .createSignedUrl(resultPath, 60 * 60 * 24 * 7); // 7 days
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error("Signed URL error:", signedUrlError);
+      return new Response(JSON.stringify({ error: "Failed to generate download URL" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const resultSignedUrl = signedUrlData.signedUrl;
 
     await supabaseAdmin
       .from("generations")
