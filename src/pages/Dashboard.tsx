@@ -253,14 +253,14 @@ const Dashboard = () => {
       try {
         const base64 = await fileToBase64(uploadedFile);
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
+          const res = await fetch(`https://${projectId}.supabase.co/functions/v1/telegram-generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               init_data: window.Telegram?.WebApp?.initData || "",
               image_base64: base64,
-              scene_type: "studio",
-              model_type: "without-model",
+              scene_type: sceneType,
+              model_type: modelType,
             }),
         });
         const data = await res.json();
