@@ -243,8 +243,8 @@ const Dashboard = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.includes("png")) {
-      toast.error("Faqat PNG formatdagi rasm qabul qilinadi");
+    if (!file.type.startsWith("image/")) {
+      toast.error("Faqat rasm fayllari qabul qilinadi");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -586,7 +586,7 @@ const Dashboard = () => {
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept=".png,image/png"
+                accept="image/*"
                 onChange={handleFileChange}
               />
             </label>
