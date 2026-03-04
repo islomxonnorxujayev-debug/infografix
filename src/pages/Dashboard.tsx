@@ -692,7 +692,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
+      <AdminDialog open={showAdminDialog} onOpenChange={setShowAdminDialog} adminEmail={adminEmail} setAdminEmail={setAdminEmail} password={password} setPassword={setPassword} onSubmit={handleAdminAccess} />
     </div>
   );
 };
