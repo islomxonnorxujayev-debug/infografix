@@ -221,18 +221,23 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
     await supabase.storage.from("product-images").upload(resultPath, resultBytes, {
       contentType: "image/png", upsert: true,
     });
-    const { data: resultUrlData } = supabase.storage.from("product-images").getPublicUrl(resultPath);
+
+    // Generate signed URLs for response
+    const { data: resultSignedData } = await supabase.storage.from("product-images")
+      .createSignedUrl(resultPath, 60 * 60 * 24 * 7); // 7 days
+    const { data: origSignedData } = await supabase.storage.from("product-images")
+      .createSignedUrl(originalPath, 60 * 60 * 24 * 7);
 
     await supabase.from("generations").update({
-      result_url: resultUrlData.publicUrl, status: "completed"
+      result_url: resultPath, status: "completed"
     }).eq("id", genId);
     await supabase.from("profiles").update({
       credits_remaining: profile.credits_remaining - 1
     }).eq("id", profile.id);
 
     return new Response(JSON.stringify({
-      resultUrl: resultUrlData.publicUrl,
-      originalUrl: originalUrlData.publicUrl,
+      resultUrl: resultSignedData?.signedUrl || "",
+      originalUrl: origSignedData?.signedUrl || "",
       creditsRemaining: profile.credits_remaining - 1,
       generationId: genId,
     }), {
