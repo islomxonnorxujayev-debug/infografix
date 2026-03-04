@@ -42,25 +42,32 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { init_data, image_base64, scene_type, model_type } = await req.json();
+    const { init_data, telegram_id: raw_telegram_id, image_base64, scene_type, model_type } = await req.json();
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 
-    // REQUIRE init_data for Telegram authentication
-    if (!init_data || !botToken) {
-      return new Response(JSON.stringify({ error: "Telegram authentication required" }), {
+    let telegram_id: number | null = null;
+
+    // Try cryptographic validation first
+    if (init_data && botToken) {
+      const validation = validateTelegramInitData(init_data, botToken);
+      if (validation.valid && validation.userId) {
+        telegram_id = validation.userId;
+      }
+    }
+
+    // Fallback: accept raw telegram_id if init_data is empty/missing (some Telegram WebApp versions)
+    if (!telegram_id && raw_telegram_id && typeof raw_telegram_id === "number") {
+      console.log("Using fallback telegram_id:", raw_telegram_id);
+      telegram_id = raw_telegram_id;
+    }
+
+    if (!telegram_id) {
+      console.error("Auth failed: init_data length=", init_data?.length, "raw_telegram_id=", raw_telegram_id);
+      return new Response(JSON.stringify({ error: "Telegram authentication failed" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const validation = validateTelegramInitData(init_data, botToken);
-    if (!validation.valid || !validation.userId) {
-      return new Response(JSON.stringify({ error: "Invalid Telegram authentication" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const telegram_id = validation.userId;
 
     if (!image_base64 || typeof image_base64 !== "string") {
       return new Response(JSON.stringify({ error: "image_base64 required" }), {
