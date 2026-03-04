@@ -46,28 +46,21 @@ serve(async (req) => {
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 
-    let telegram_id: number | null = null;
-
-    // Try cryptographic validation first
-    if (init_data && botToken) {
-      const validation = validateTelegramInitData(init_data, botToken);
-      if (validation.valid && validation.userId) {
-        telegram_id = validation.userId;
-      }
-    }
-
-    // Fallback: accept raw telegram_id if init_data is empty/missing (some Telegram WebApp versions)
-    if (!telegram_id && raw_telegram_id && typeof raw_telegram_id === "number") {
-      console.log("Using fallback telegram_id:", raw_telegram_id);
-      telegram_id = raw_telegram_id;
-    }
-
-    if (!telegram_id) {
-      console.error("Auth failed: init_data length=", init_data?.length, "raw_telegram_id=", raw_telegram_id);
-      return new Response(JSON.stringify({ error: "Telegram authentication failed" }), {
+    // REQUIRE init_data - no fallback to raw telegram_id
+    if (!init_data || !botToken) {
+      return new Response(JSON.stringify({ error: "Telegram authentication required" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const validation = validateTelegramInitData(init_data, botToken);
+    if (!validation.valid || !validation.userId) {
+      return new Response(JSON.stringify({ error: "Invalid Telegram authentication" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const telegram_id = validation.userId;
 
     if (!image_base64 || typeof image_base64 !== "string") {
       return new Response(JSON.stringify({ error: "image_base64 required" }), {
@@ -131,7 +124,15 @@ serve(async (req) => {
       });
     }
 
-    const { data: originalUrlData } = supabase.storage.from("product-images").getPublicUrl(originalPath);
+    // Use signed URL for AI access (private bucket)
+    const { data: originalSignedData } = await supabase.storage.from("product-images")
+      .createSignedUrl(originalPath, 60 * 30); // 30 min for AI processing
+
+    if (!originalSignedData?.signedUrl) {
+      return new Response(JSON.stringify({ error: "Rasm URL yaratishda xatolik" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const sceneType = scene_type || "studio";
     const modelType = model_type || "without-model";
@@ -140,7 +141,7 @@ serve(async (req) => {
       id: genId,
       user_id: profile.user_id || null,
       telegram_id,
-      original_url: originalUrlData.publicUrl,
+      original_url: originalPath,
       marketplace: "Web App / Studio",
       style_preset: sceneType,
       enhancements: { model: modelType, scene: sceneType, language: "uz", source: "webapp" },
@@ -180,7 +181,7 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: originalUrlData.publicUrl } },
+            { type: "image_url", image_url: { url: originalSignedData.signedUrl } },
           ],
         }],
         modalities: ["image", "text"],
@@ -220,18 +221,23 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
     await supabase.storage.from("product-images").upload(resultPath, resultBytes, {
       contentType: "image/png", upsert: true,
     });
-    const { data: resultUrlData } = supabase.storage.from("product-images").getPublicUrl(resultPath);
+
+    // Generate signed URLs for response
+    const { data: resultSignedData } = await supabase.storage.from("product-images")
+      .createSignedUrl(resultPath, 60 * 60 * 24 * 7); // 7 days
+    const { data: origSignedData } = await supabase.storage.from("product-images")
+      .createSignedUrl(originalPath, 60 * 60 * 24 * 7);
 
     await supabase.from("generations").update({
-      result_url: resultUrlData.publicUrl, status: "completed"
+      result_url: resultPath, status: "completed"
     }).eq("id", genId);
     await supabase.from("profiles").update({
       credits_remaining: profile.credits_remaining - 1
     }).eq("id", profile.id);
 
     return new Response(JSON.stringify({
-      resultUrl: resultUrlData.publicUrl,
-      originalUrl: originalUrlData.publicUrl,
+      resultUrl: resultSignedData?.signedUrl || "",
+      originalUrl: origSignedData?.signedUrl || "",
       creditsRemaining: profile.credits_remaining - 1,
       generationId: genId,
     }), {

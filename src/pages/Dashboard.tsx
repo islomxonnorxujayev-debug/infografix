@@ -109,6 +109,13 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [processing]);
 
+  // Helper to resolve storage path to signed URL
+  const getSignedUrl = async (path: string): Promise<string> => {
+    if (!path || path.startsWith("http")) return path;
+    const { data } = await supabase.storage.from("product-images").createSignedUrl(path, 60 * 60 * 24); // 24h
+    return data?.signedUrl || path;
+  };
+
   // Load web user data
   useEffect(() => {
     if (isTelegram || !user) return;
@@ -118,18 +125,30 @@ const Dashboard = () => {
     supabase.from("generations")
       .select("id, result_url, original_url, marketplace, status, created_at")
       .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50)
-      .then(({ data }) => { if (data) setGenerations(data); });
+      .then(async ({ data }) => {
+        if (!data) return;
+        // Resolve storage paths to signed URLs
+        const resolved = await Promise.all(data.map(async (g) => ({
+          ...g,
+          result_url: g.result_url ? await getSignedUrl(g.result_url) : null,
+          original_url: g.original_url ? await getSignedUrl(g.original_url) : null,
+        })));
+        setGenerations(resolved);
+      });
   }, [user, isTelegram]);
 
   const loadTelegramData = async (telegramId: number, initData: string) => {
+    if (!initData) {
+      console.error("No Telegram initData - cannot authenticate");
+      setTgLoading(false);
+      return;
+    }
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
-      const body: any = { telegram_id: telegramId };
-      if (initData) body.init_data = initData;
       const res = await fetch(`https://${projectId}.supabase.co/functions/v1/get-user-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ init_data: initData }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -282,7 +301,6 @@ const Dashboard = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             init_data: initData,
-            telegram_id: telegramUser?.id,
             image_base64: base64,
             scene_type: sceneType,
             model_type: modelType,
@@ -337,13 +355,17 @@ const Dashboard = () => {
         }
 
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        const originalUrl = urlData.publicUrl;
+        // For AI, we need a signed URL since bucket is private
+        const { data: signedData } = await supabase.storage.from("product-images").createSignedUrl(filePath, 60 * 30);
+        const aiImageUrl = signedData?.signedUrl || originalUrl;
         console.log("Step 2: Creating generation record...");
 
         const { data: genData, error: genError } = await supabase
           .from("generations")
           .insert({
             user_id: user.id,
-            original_url: urlData.publicUrl,
+            original_url: filePath,
             marketplace: `${sceneType} / ${modelType}`,
             style_preset: sceneType,
             enhancements: { model: modelType, scene: sceneType },
@@ -363,7 +385,7 @@ const Dashboard = () => {
         console.log("Step 3: Calling AI process-image...");
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
           body: {
-            imageUrl: urlData.publicUrl,
+            imageUrl: aiImageUrl,
             modelType,
             sceneType,
             generationId: genData.id,

@@ -67,7 +67,18 @@ const Admin = () => {
     }
     if (tab === "generations") {
       const { data } = await supabase.from("generations").select("*").order("created_at", { ascending: false }).limit(200);
-      if (data) setGenerations(data as Generation[]);
+      if (data) {
+        // Resolve storage paths to signed URLs
+        const resolved = await Promise.all((data as Generation[]).map(async (g) => {
+          const resolve = async (path: string | null) => {
+            if (!path || path.startsWith("http")) return path;
+            const { data: sd } = await supabase.storage.from("product-images").createSignedUrl(path, 60 * 60);
+            return sd?.signedUrl || path;
+          };
+          return { ...g, result_url: await resolve(g.result_url), original_url: await resolve(g.original_url) };
+        }));
+        setGenerations(resolved);
+      }
     }
     if (tab === "payments") {
       const { data } = await supabase.from("payment_requests").select("*").order("created_at", { ascending: false });

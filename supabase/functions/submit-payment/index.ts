@@ -51,24 +51,22 @@ serve(async (req) => {
     }
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    let telegram_id: number | null = null;
 
-    if (init_data && botToken) {
-      const validation = validateTelegramInitData(init_data, botToken);
-      if (validation.valid && validation.userId) {
-        telegram_id = validation.userId;
-      }
-    }
-
-    if (!telegram_id && raw_telegram_id && typeof raw_telegram_id === "number") {
-      telegram_id = raw_telegram_id;
-    }
-
-    if (!telegram_id) {
-      return new Response(JSON.stringify({ error: "Telegram authentication failed" }), {
+    // REQUIRE init_data - no fallback to raw telegram_id
+    if (!init_data || !botToken) {
+      return new Response(JSON.stringify({ error: "Telegram authentication required" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const validation = validateTelegramInitData(init_data, botToken);
+    if (!validation.valid || !validation.userId) {
+      return new Response(JSON.stringify({ error: "Invalid Telegram authentication" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const telegram_id = validation.userId;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
