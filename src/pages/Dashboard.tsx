@@ -243,8 +243,14 @@ const Dashboard = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Rasm juda katta (max 5MB)");
+    if (!file.type.includes("png")) {
+      toast.error("Faqat PNG formatdagi rasm qabul qilinadi");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Rasm juda katta (max 10MB)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     setUploadedFile(file);
