@@ -113,7 +113,11 @@ serve(async (req) => {
 
     // Upload original image to storage
     const base64Clean = image_base64.replace(/^data:image\/\w+;base64,/, "");
-    const imageBytes = Uint8Array.from(atob(base64Clean), (c) => c.charCodeAt(0));
+    const rawBinary = atob(base64Clean);
+    const imageBytes = new Uint8Array(rawBinary.length);
+    for (let i = 0; i < rawBinary.length; i++) {
+      imageBytes[i] = rawBinary.charCodeAt(i);
+    }
     const genId = crypto.randomUUID();
     const originalPath = `${profile.id}/originals/${genId}.png`;
 
