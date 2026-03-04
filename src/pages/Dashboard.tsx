@@ -48,6 +48,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const [showAdminDialog, setShowAdminDialog] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
   const [password, setPassword] = useState("");
 
   // Telegram state
