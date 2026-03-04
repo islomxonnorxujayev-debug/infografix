@@ -349,7 +349,7 @@ const Dashboard = () => {
           .from("generations")
           .insert({
             user_id: user.id,
-            original_url: urlData.publicUrl,
+            original_url: filePath,
             marketplace: `${sceneType} / ${modelType}`,
             style_preset: sceneType,
             enhancements: { model: modelType, scene: sceneType },
