@@ -284,10 +284,18 @@ const Dashboard = () => {
       }
     } else {
       // Web flow via process-image
+      if (!user?.id) {
+        toast.error("Sessiya tugagan. Qayta kiring.");
+        navigate("/");
+        return;
+      }
+
       setProcessing(true);
+      let generationId: string | null = null;
+
       try {
         const fileExt = uploadedFile.name.split('.').pop();
-        const filePath = `${user!.id}/originals/${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${user.id}/originals/${crypto.randomUUID()}.${fileExt}`;
 
         console.log("Step 1: Uploading to storage...");
         const { error: uploadError } = await supabase.storage
@@ -305,7 +313,7 @@ const Dashboard = () => {
         const { data: genData, error: genError } = await supabase
           .from("generations")
           .insert({
-            user_id: user!.id,
+            user_id: user.id,
             original_url: urlData.publicUrl,
             marketplace: "Web App / Studio",
             style_preset: "studio",
@@ -314,11 +322,14 @@ const Dashboard = () => {
           })
           .select("id")
           .single();
+
         if (genError) {
           console.error("Generation insert error:", genError);
           toast.error("Ma'lumot saqlashda xatolik: " + genError.message);
           return;
         }
+
+        generationId = genData.id;
 
         console.log("Step 3: Calling AI process-image...");
         const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
@@ -329,12 +340,36 @@ const Dashboard = () => {
             generationId: genData.id,
           },
         });
+
         if (fnError) {
           console.error("Function invoke error:", fnError);
-          toast.error("AI funksiya xatoligi: " + (fnError.message || JSON.stringify(fnError)));
+
+          let errorMessage = "AI xizmati bilan bog'lanishda xatolik yuz berdi";
+          const responseStatus = fnError.context?.status;
+
+          if (responseStatus === 401) errorMessage = "Tizimga qayta kiring va yana urinib ko'ring";
+          if (responseStatus === 402) errorMessage = "Kredit tugagan. Balansni to'ldiring";
+          if (responseStatus === 429) errorMessage = "AI tizimi band. 1-2 daqiqadan keyin qayta urinib ko'ring";
+
+          try {
+            const errorBody = await fnError.context?.json?.();
+            if (errorBody?.error) errorMessage = errorBody.error;
+          } catch {
+            // ignore parse errors
+          }
+
+          if (generationId) {
+            await supabase.from("generations").update({ status: "failed" }).eq("id", generationId);
+          }
+
+          toast.error(errorMessage);
           return;
         }
+
         if (fnData?.error) {
+          if (generationId) {
+            await supabase.from("generations").update({ status: "failed" }).eq("id", generationId);
+          }
           toast.error(fnData.error);
           return;
         }
@@ -350,11 +385,14 @@ const Dashboard = () => {
         }, ...prev]);
 
         // Reload credits
-        const { data: profileData } = await supabase.from("profiles").select("credits_remaining").eq("user_id", user!.id).single();
+        const { data: profileData } = await supabase.from("profiles").select("credits_remaining").eq("user_id", user.id).single();
         if (profileData) setCredits(profileData.credits_remaining);
 
         toast.success("Rasm tayyor! ✨");
       } catch (err: any) {
+        if (generationId) {
+          await supabase.from("generations").update({ status: "failed" }).eq("id", generationId);
+        }
         console.error("Generate error details:", err);
         toast.error(err.message || "Noma'lum xatolik yuz berdi. Qayta urinib ko'ring.");
       } finally {
