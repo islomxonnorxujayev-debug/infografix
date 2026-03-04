@@ -1,0 +1,137 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+function validateTelegramInitData(initData: string, botToken: string): { valid: boolean; userId?: number } {
+  try {
+    const params = new URLSearchParams(initData);
+    const hash = params.get("hash");
+    if (!hash) return { valid: false };
+
+    params.delete("hash");
+    const dataCheckArr = Array.from(params.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, val]) => `${key}=${val}`);
+    const dataCheckString = dataCheckArr.join("\n");
+
+    const secretKey = createHmac("sha256", "WebAppData").update(botToken).digest();
+    const checkHash = createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+    if (checkHash !== hash) return { valid: false };
+
+    const userStr = params.get("user");
+    if (!userStr) return { valid: false };
+    const user = JSON.parse(userStr);
+
+    const authDate = parseInt(params.get("auth_date") || "0");
+    const now = Math.floor(Date.now() / 1000);
+    if (now - authDate > 86400) return { valid: false };
+
+    return { valid: true, userId: user.id };
+  } catch {
+    return { valid: false };
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { init_data, telegram_id: raw_telegram_id, package_name, credits, amount, screenshot_base64 } = await req.json();
+
+    if (!package_name || !credits || !amount || !screenshot_base64) {
+      return new Response(JSON.stringify({ error: "Ma'lumotlar to'liq emas" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+    let telegram_id: number | null = null;
+
+    if (init_data && botToken) {
+      const validation = validateTelegramInitData(init_data, botToken);
+      if (validation.valid && validation.userId) {
+        telegram_id = validation.userId;
+      }
+    }
+
+    if (!telegram_id && raw_telegram_id && typeof raw_telegram_id === "number") {
+      telegram_id = raw_telegram_id;
+    }
+
+    if (!telegram_id) {
+      return new Response(JSON.stringify({ error: "Telegram authentication failed" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    // Find profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, user_id")
+      .eq("telegram_id", telegram_id)
+      .single();
+
+    if (!profile) {
+      return new Response(JSON.stringify({ error: "Profil topilmadi" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Upload screenshot
+    const base64Clean = screenshot_base64.replace(/^data:image\/\w+;base64,/, "");
+    const imageBytes = Uint8Array.from(atob(base64Clean), (c) => c.charCodeAt(0));
+    const fileId = crypto.randomUUID();
+    const filePath = `${profile.id}/payments/${fileId}.jpg`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("payment-screenshots")
+      .upload(filePath, imageBytes, { contentType: "image/jpeg", upsert: true });
+
+    if (uploadErr) {
+      console.error("Screenshot upload error:", uploadErr);
+      return new Response(JSON.stringify({ error: "Skrinshot yuklashda xatolik" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const screenshotRef = `payment-screenshots/${filePath}`;
+
+    // Insert payment request
+    const { error: insertErr } = await supabase.from("payment_requests").insert({
+      user_id: profile.user_id || null,
+      telegram_id,
+      profile_id: profile.id,
+      package_name,
+      credits,
+      amount: String(amount),
+      screenshot_url: screenshotRef,
+      status: "pending",
+    });
+
+    if (insertErr) {
+      console.error("Payment insert error:", insertErr);
+      return new Response(JSON.stringify({ error: "To'lov so'rovini saqlashda xatolik" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("submit-payment error:", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Xatolik" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

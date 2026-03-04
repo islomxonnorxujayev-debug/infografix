@@ -28,13 +28,49 @@ const Balance = () => {
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Telegram user detection
+  const [telegramUser, setTelegramUser] = useState<{ id: number; first_name?: string } | null>(null);
+  const [tgProfileId, setTgProfileId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!user) return;
+    const tg = window.Telegram?.WebApp;
+    const tgUser = tg?.initDataUnsafe?.user;
+    if (tgUser?.id) {
+      setTelegramUser(tgUser);
+      loadTelegramProfile(tgUser.id);
+    }
+  }, []);
+
+  const isTelegram = !!telegramUser;
+
+  const loadTelegramProfile = async (telegramId: number) => {
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
+      const initData = window.Telegram?.WebApp?.initData || "";
+      const body: any = { telegram_id: telegramId };
+      if (initData) body.init_data = initData;
+      const res = await fetch(`https://${projectId}.supabase.co/functions/v1/get-user-data`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCredits(data.profile?.credits_remaining ?? 0);
+        setMyRequests(data.payments || []);
+      }
+    } catch (e) {
+      console.error("Failed to load telegram profile:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (isTelegram || !user) return;
     supabase.from("profiles").select("credits_remaining").eq("user_id", user.id).single().then(({ data }) => {
       if (data) setCredits(data.credits_remaining);
     });
     loadRequests();
-  }, [user]);
+  }, [user, isTelegram]);
 
   const loadRequests = async () => {
     if (!user) return;
@@ -47,49 +83,95 @@ const Balance = () => {
   };
 
   const copyCard = async () => {
-    await navigator.clipboard.writeText(CARD_NUMBER.replace(/\s/g, ""));
-    setCopied(true);
-    toast.success("Karta raqam nusxalandi");
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(CARD_NUMBER.replace(/\s/g, ""));
+      setCopied(true);
+      toast.success("Karta raqam nusxalandi");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for Telegram WebApp where clipboard API might not work
+      toast.info("Karta: " + CARD_NUMBER.replace(/\s/g, ""));
+    }
   };
 
   const handleSubmit = async () => {
-    if (!user || !selectedPkg || !screenshotFile) return;
+    if (!selectedPkg || !screenshotFile) return;
+    if (!isTelegram && !user) {
+      toast.error("Tizimga kiring");
+      return;
+    }
     setSubmitting(true);
 
     try {
-      const fileExt = screenshotFile.name.split(".").pop();
-      const filePath = `${user.id}/payments/${crypto.randomUUID()}.${fileExt}`;
+      // Upload screenshot via edge function for Telegram users, or directly for auth users
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "dpgxzkwmfgvevbssdkai";
+      
+      if (isTelegram) {
+        // Convert file to base64 and send via edge function
+        const base64 = await fileToBase64(screenshotFile);
+        const initData = window.Telegram?.WebApp?.initData || "";
+        const res = await fetch(`https://${projectId}.supabase.co/functions/v1/submit-payment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            init_data: initData,
+            telegram_id: telegramUser?.id,
+            package_name: selectedPkg.name,
+            credits: selectedPkg.credits,
+            amount: selectedPkg.amount,
+            screenshot_base64: base64,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Xatolik");
+        toast.success("To'lov so'rovi yuborildi! Admin tasdiqlashini kuting.");
+        setSelectedPkg(null);
+        setScreenshotFile(null);
+        // Reload payments
+        if (telegramUser?.id) loadTelegramProfile(telegramUser.id);
+      } else {
+        // Web user flow - direct upload
+        const fileExt = screenshotFile.name.split(".").pop();
+        const filePath = `${user!.id}/payments/${crypto.randomUUID()}.${fileExt}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from("payment-screenshots")
-        .upload(filePath, screenshotFile, { cacheControl: "3600", upsert: true });
+        const { error: uploadErr } = await supabase.storage
+          .from("payment-screenshots")
+          .upload(filePath, screenshotFile, { cacheControl: "3600", upsert: true });
 
-      if (uploadErr) throw uploadErr;
+        if (uploadErr) throw uploadErr;
 
-      const screenshotRef = `payment-screenshots/${filePath}`;
+        const screenshotRef = `payment-screenshots/${filePath}`;
 
-      const { error } = await supabase.from("payment_requests").insert({
-        user_id: user.id,
-        package_name: selectedPkg.name,
-        credits: selectedPkg.credits,
-        amount: selectedPkg.amount,
-        screenshot_url: screenshotRef,
-        status: "pending",
-      });
+        const { error } = await supabase.from("payment_requests").insert({
+          user_id: user!.id,
+          package_name: selectedPkg.name,
+          credits: selectedPkg.credits,
+          amount: selectedPkg.amount,
+          screenshot_url: screenshotRef,
+          status: "pending",
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast.success("To'lov so'rovi yuborildi! Admin tasdiqlashini kuting.");
-      setSelectedPkg(null);
-      setScreenshotFile(null);
-      loadRequests();
+        toast.success("To'lov so'rovi yuborildi! Admin tasdiqlashini kuting.");
+        setSelectedPkg(null);
+        setScreenshotFile(null);
+        loadRequests();
+      }
     } catch (err: any) {
       toast.error(err.message || "Xatolik yuz berdi");
     } finally {
       setSubmitting(false);
     }
   };
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
   const statusColor = (s: string) => {
     if (s === "approved") return "text-green-600 bg-green-500/10";
@@ -102,6 +184,15 @@ const Balance = () => {
     if (s === "rejected") return "❌ Rad etildi";
     return "⏳ Kutilmoqda";
   };
+
+  // Show loading if no data yet
+  if (!isTelegram && !user) {
+    return (
+      <div className="h-[100dvh] bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Tizimga kiring</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -211,7 +302,7 @@ const Balance = () => {
                   ref={fileRef}
                   type="file"
                   className="hidden"
-                  accept=".jpg,.jpeg,.png,.webp"
+                  accept="image/*"
                   onChange={(e) => e.target.files?.[0] && setScreenshotFile(e.target.files[0])}
                 />
               </label>
@@ -242,7 +333,7 @@ const Balance = () => {
               <Clock className="h-4 w-4" /> To'lov tarixi
             </h3>
             <div className="space-y-2">
-              {myRequests.map((req) => (
+              {myRequests.map((req: any) => (
                 <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
                   <div>
                     <p className="text-sm font-medium text-foreground">{req.package_name}</p>
