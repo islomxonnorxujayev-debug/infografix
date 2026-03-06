@@ -148,12 +148,15 @@ serve(async (req) => {
       status: "processing",
     });
 
+    const langCode = language || "uz";
+    const langName = langCode === "ru" ? "Russian" : "Uzbek";
+
     const sceneMap: Record<string, string> = {
       nature: "Outdoor nature: golden-hour sunlit garden. Warm tones, bokeh background.",
       lifestyle: "Lifestyle: modern apartment/cafe. Warm ambient light, rich textures.",
       studio: "Studio: seamless gradient backdrop, 3-point lighting, reflective surface.",
       minimalist: "Minimalist: solid/gradient backdrop, ample negative space, soft diffused light.",
-      infographic: "Marketplace infographic card. White background. Product centered. Feature callouts with Uzbek labels.",
+      infographic: `Marketplace infographic card. White background. Product centered. Feature callouts with ${langName} labels. ALL text in ${langName}.`,
     };
 
     const modelInstruction = modelType === "with-model"
