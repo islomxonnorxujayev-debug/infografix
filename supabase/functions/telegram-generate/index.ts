@@ -42,7 +42,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { init_data, telegram_id: raw_telegram_id, image_base64, scene_type, model_type } = await req.json();
+    const { init_data, telegram_id: raw_telegram_id, image_base64, scene_type, model_type, language } = await req.json();
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 
