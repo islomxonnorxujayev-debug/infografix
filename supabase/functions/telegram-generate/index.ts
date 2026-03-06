@@ -144,7 +144,7 @@ serve(async (req) => {
       original_url: originalPath,
       marketplace: "Web App / Studio",
       style_preset: sceneType,
-      enhancements: { model: modelType, scene: sceneType, language: "uz", source: "webapp" },
+      enhancements: { model: modelType, scene: sceneType, language: language || "uz", source: "webapp" },
       status: "processing",
     });
 
