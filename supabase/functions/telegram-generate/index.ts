@@ -170,6 +170,7 @@ SCENE: ${sceneMap[sceneType] || sceneMap.studio}
 MODEL: ${modelInstruction}
 SCALE: Product at CORRECT real-world size. 25-40% of frame.
 LIGHTING: 3-point professional. Cinematic color grading. True colors. Subtle vignette.
+DESIGN (${langName}): 1-2 elegant text overlays in ${langName}. Modern clean typography.
 QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
