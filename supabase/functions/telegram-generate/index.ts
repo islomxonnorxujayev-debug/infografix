@@ -42,7 +42,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { init_data, telegram_id: raw_telegram_id, image_base64, scene_type, model_type } = await req.json();
+    const { init_data, telegram_id: raw_telegram_id, image_base64, scene_type, model_type, language } = await req.json();
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 
@@ -144,16 +144,19 @@ serve(async (req) => {
       original_url: originalPath,
       marketplace: "Web App / Studio",
       style_preset: sceneType,
-      enhancements: { model: modelType, scene: sceneType, language: "uz", source: "webapp" },
+      enhancements: { model: modelType, scene: sceneType, language: language || "uz", source: "webapp" },
       status: "processing",
     });
+
+    const langCode = language || "uz";
+    const langName = langCode === "ru" ? "Russian" : "Uzbek";
 
     const sceneMap: Record<string, string> = {
       nature: "Outdoor nature: golden-hour sunlit garden. Warm tones, bokeh background.",
       lifestyle: "Lifestyle: modern apartment/cafe. Warm ambient light, rich textures.",
       studio: "Studio: seamless gradient backdrop, 3-point lighting, reflective surface.",
       minimalist: "Minimalist: solid/gradient backdrop, ample negative space, soft diffused light.",
-      infographic: "Marketplace infographic card. White background. Product centered. Feature callouts with Uzbek labels.",
+      infographic: `Marketplace infographic card. White background. Product centered. Feature callouts with ${langName} labels. ALL text in ${langName}.`,
     };
 
     const modelInstruction = modelType === "with-model"
@@ -167,6 +170,7 @@ SCENE: ${sceneMap[sceneType] || sceneMap.studio}
 MODEL: ${modelInstruction}
 SCALE: Product at CORRECT real-world size. 25-40% of frame.
 LIGHTING: 3-point professional. Cinematic color grading. True colors. Subtle vignette.
+DESIGN (${langName}): 1-2 elegant text overlays in ${langName}. Modern clean typography.
 QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
