@@ -123,6 +123,24 @@ serve(async (req) => {
       });
     }
 
+    // Send Telegram notification to admin
+    const adminChatId = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
+    if (adminChatId && botToken) {
+      const profile = (await supabase.from("profiles").select("first_name, telegram_username").eq("telegram_id", telegram_id).single()).data;
+      const userName = profile?.first_name || profile?.telegram_username || `TG:${telegram_id}`;
+      const message = `🔔 *Yangi to'lov so'rovi!*\n\n👤 ${userName}\n📦 ${package_name}\n💰 ${Number(amount).toLocaleString()} so'm\n🎯 ${credits} kredit\n\n⏳ Tasdiqlash kutilmoqda`;
+      
+      try {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: adminChatId, text: message, parse_mode: "Markdown" }),
+        });
+      } catch (notifErr) {
+        console.error("Admin notification error:", notifErr);
+      }
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
