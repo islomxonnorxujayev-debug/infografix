@@ -1,9 +1,9 @@
-import { Sparkles, Shield, CreditCard, ImageIcon, Clock, Upload, Loader2, Download, Settings, ChevronDown, LogOut } from "lucide-react";
+import { Sparkles, Shield, CreditCard, ImageIcon, Clock, Upload, Loader2, Download, Settings, ChevronDown, LogOut, Wand2 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
+import { AnimatePresence, motion } from "framer-motion";
   Dialog,
   DialogContent,
   DialogHeader,
