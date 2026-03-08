@@ -43,6 +43,12 @@ interface Generation {
   created_at: string;
 }
 
+const showcaseItems = [
+  { before: "/images/before-1.jpg", after: "/images/after-1.jpg" },
+  { before: "/images/before-2.jpg", after: "/images/after-2.jpg" },
+  { before: "/images/before-3.jpg", after: "/images/after-3.jpg" },
+];
+
 const Dashboard = () => {
   const { t, lang } = useLanguage();
   const { user, loading: authLoading, signIn, signOut } = useAuth();
