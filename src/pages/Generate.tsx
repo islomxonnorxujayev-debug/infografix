@@ -149,6 +149,7 @@ const Generate = () => {
       stopTimers();
       setProgress(100);
       setResultUrl(fnData.resultUrl);
+      setResultWatermarked(fnData.watermarked || false);
       setShowComplete(true);
       fireConfetti();
       toast.success(t("gen.success"));
