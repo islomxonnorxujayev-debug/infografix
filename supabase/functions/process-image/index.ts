@@ -126,7 +126,11 @@ YORITISH: 3 nuqtali professional yoritish. Kinematografik rang sozlash. Mahsulot
 
 DIZAYN: 1-2 nafis matnli qoplama faqat ${langLabel} — mahsulot kategoriyasi yoki qisqa shior. Zamonaviy toza tipografiya. HECH QANDAY inglizcha so'z ishlatma.
 
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.${profile.plan === "free" && profile.credits_remaining <= 1 ? `
+IMLO: Infografikadagi barcha matnlar imlo va grammatika jihatdan 100% to'g'ri bo'lsin. Hech qanday xato harf yoki noto'g'ri yozuv bo'lmasin.
+
+FORMAT (QAT'IY): Yakuniy rasm faqat 1080x1440 piksel bo'lsin. Boshqa o'lcham yaratma.
+
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.${shouldApplyWatermark ? `
 
 WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
 
