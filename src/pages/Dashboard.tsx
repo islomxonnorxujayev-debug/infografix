@@ -338,6 +338,7 @@ const Dashboard = () => {
           return;
         }
         setResultUrl(data.resultUrl);
+        setResultWatermarked(data.watermarked || false);
         setCredits(data.creditsRemaining);
         setGenerations(prev => [{
           id: data.generationId,
