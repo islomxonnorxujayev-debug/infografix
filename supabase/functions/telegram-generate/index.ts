@@ -191,7 +191,9 @@ MODEL: ${modelInstruction}
 MASSHTAB: Mahsulot HAQIQIY o'lchamda. Kadrning 25-40% ini egallaydi.
 YORITISH: 3 nuqtali professional. Kinematografik rang sozlash. Asl ranglar saqlanadi.
 DIZAYN: 1-2 nafis matn faqat ${langLabel}. HECH QANDAY inglizcha so'z ishlatma.
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Noyob kompozitsiya.${profile.plan === "free" && profile.credits_remaining <= 1 ? `
+IMLO: Infografikadagi barcha matnlar imlo va grammatika jihatdan 100% to'g'ri bo'lsin. Xato harf bo'lmasin.
+FORMAT (QAT'IY): Yakuniy rasm faqat 1080x1440 piksel bo'lsin. Boshqa o'lcham yaratma.
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Noyob kompozitsiya.${shouldApplyWatermark ? `
 
 WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
 
