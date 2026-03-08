@@ -626,10 +626,51 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="px-4 space-y-4">
+          <div className="px-4 space-y-3">
+            {/* Compact Before/After Showcase */}
+            {!uploadedFile && (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex">
+                  <div className="w-1/2 relative border-r border-border">
+                    <img
+                      key={`before-${showcaseIndex}`}
+                      src={showcaseItems[showcaseIndex].before}
+                      alt="Before"
+                      className="w-full aspect-square object-cover"
+                    />
+                    <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-destructive/90 text-destructive-foreground text-[10px] font-semibold">
+                      {t("hero.before")}
+                    </span>
+                  </div>
+                  <div className="w-1/2 relative">
+                    <img
+                      key={`after-${showcaseIndex}`}
+                      src={showcaseItems[showcaseIndex].after}
+                      alt="After"
+                      className="w-full aspect-square object-cover"
+                    />
+                    <span className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-full bg-accent/90 text-accent-foreground text-[10px] font-semibold">
+                      {t("hero.after")}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 py-1.5">
+                  {showcaseItems.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setShowcaseIndex(i)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        i === showcaseIndex ? "bg-primary w-4" : "bg-muted-foreground/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="text-center">
-              <h2 className="font-display text-xl font-bold text-foreground">{t("dash.uploadTitle")}</h2>
-              <p className="text-sm text-muted-foreground mt-1">{t("dash.uploadDesc")}</p>
+              <h2 className="font-display text-lg font-bold text-foreground">{t("dash.uploadTitle")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("dash.uploadDesc")}</p>
             </div>
 
             <label className="block cursor-pointer">
