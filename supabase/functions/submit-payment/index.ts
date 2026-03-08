@@ -105,7 +105,7 @@ serve(async (req) => {
     const screenshotRef = `payment-screenshots/${filePath}`;
 
     // Insert payment request
-    const { error: insertErr } = await supabase.from("payment_requests").insert({
+    const { data: paymentReq, error: insertErr } = await supabase.from("payment_requests").insert({
       user_id: profile.user_id || null,
       telegram_id,
       profile_id: profile.id,
@@ -114,7 +114,7 @@ serve(async (req) => {
       amount: String(amount),
       screenshot_url: screenshotRef,
       status: "pending",
-    });
+    }).select("id").single();
 
     if (insertErr) {
       console.error("Payment insert error:", insertErr);
@@ -123,19 +123,53 @@ serve(async (req) => {
       });
     }
 
-    // Send Telegram notification to admin
+    // Send Telegram notification to admin with screenshot and approve/reject buttons
     const adminChatId = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
-    if (adminChatId && botToken) {
-      const profile = (await supabase.from("profiles").select("first_name, telegram_username").eq("telegram_id", telegram_id).single()).data;
-      const userName = profile?.first_name || profile?.telegram_username || `TG:${telegram_id}`;
-      const message = `🔔 *Yangi to'lov so'rovi!*\n\n👤 ${userName}\n📦 ${package_name}\n💰 ${Number(amount).toLocaleString()} so'm\n🎯 ${credits} kredit\n\n⏳ Tasdiqlash kutilmoqda`;
-      
+    if (adminChatId && botToken && paymentReq?.id) {
+      const profileData = (await supabase.from("profiles").select("first_name, telegram_username").eq("telegram_id", telegram_id).single()).data;
+      const userName = profileData?.first_name || profileData?.telegram_username || `TG:${telegram_id}`;
+
+      // Get signed URL for the screenshot
+      const { data: signedData } = await supabase.storage
+        .from("payment-screenshots")
+        .createSignedUrl(filePath, 60 * 60 * 24);
+
+      const caption = `🔔 <b>Yangi to'lov so'rovi!</b>\n\n👤 ${userName}\n📦 ${package_name}\n💰 ${Number(amount).toLocaleString()} so'm\n🎯 ${credits} kredit\n\n⏳ Tasdiqlash kutilmoqda`;
+
+      const inlineKeyboard = {
+        inline_keyboard: [[
+          { text: "✅ Tasdiqlash", callback_data: `approve:${paymentReq.id}` },
+          { text: "❌ Rad etish", callback_data: `reject:${paymentReq.id}` },
+        ]]
+      };
+
       try {
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: adminChatId, text: message, parse_mode: "Markdown" }),
-        });
+        if (signedData?.signedUrl) {
+          // Send photo with caption and buttons
+          await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: adminChatId,
+              photo: signedData.signedUrl,
+              caption,
+              parse_mode: "HTML",
+              reply_markup: inlineKeyboard,
+            }),
+          });
+        } else {
+          // Fallback: send text with buttons if screenshot URL fails
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: adminChatId,
+              text: caption,
+              parse_mode: "HTML",
+              reply_markup: inlineKeyboard,
+            }),
+          });
+        }
       } catch (notifErr) {
         console.error("Admin notification error:", notifErr);
       }
