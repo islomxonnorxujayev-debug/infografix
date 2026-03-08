@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, CheckCircle2, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
