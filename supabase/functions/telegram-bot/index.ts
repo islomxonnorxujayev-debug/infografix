@@ -31,12 +31,23 @@ async function sendMessage(token: string, chatId: number, text: string, opts?: a
   });
 }
 
-async function sendPhoto(token: string, chatId: number | string, photoUrl: string, caption?: string, opts?: any) {
-  await fetch(`${TELEGRAM_API}${token}/sendPhoto`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML", ...opts }),
-  });
+async function sendPhoto(token: string, chatId: number | string, photoUrl: string, caption?: string, opts?: any): Promise<boolean> {
+  try {
+    const res = await fetch(`${TELEGRAM_API}${token}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML", ...opts }),
+    });
+    const result = await res.json();
+    if (!result.ok) {
+      console.error("sendPhoto failed:", JSON.stringify(result));
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("sendPhoto error:", e);
+    return false;
+  }
 }
 
 async function answerCallbackQuery(token: string, callbackQueryId: string, text?: string) {
