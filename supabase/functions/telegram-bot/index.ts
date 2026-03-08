@@ -462,20 +462,34 @@ serve(async (req) => {
             `🎯 ${credits} kredit\n\n` +
             `⏳ Tasdiqlash kutilmoqda`;
 
-          // Use the Telegram file_id directly to send the photo to admin (no need for signed URL)
-          try {
-            await sendPhoto(botToken, adminChatId, photoFile.file_id, caption, {
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    { text: "✅ Tasdiqlash", callback_data: `approve:${paymentReq.id}` },
-                    { text: "❌ Rad etish", callback_data: `reject:${paymentReq.id}` },
-                  ]
-                ]
-              }
-            });
-          } catch (notifErr) {
-            console.error("Admin notification error:", notifErr);
+          // Send photo with approve/reject buttons to admin
+          const replyMarkup = {
+            inline_keyboard: [
+              [
+                { text: "✅ Tasdiqlash", callback_data: `approve:${paymentReq.id}` },
+                { text: "❌ Rad etish", callback_data: `reject:${paymentReq.id}` },
+              ]
+            ]
+          };
+
+          // Try sending photo with file_id first
+          let photoSent = await sendPhoto(botToken, adminChatId, photoFile.file_id, caption, { reply_markup: replyMarkup });
+
+          // If file_id fails, try signed URL
+          if (!photoSent) {
+            console.log("file_id failed, trying signed URL...");
+            const { data: signedData } = await supabase.storage
+              .from("payment-screenshots")
+              .createSignedUrl(storagePath, 60 * 60 * 24);
+            if (signedData?.signedUrl) {
+              photoSent = await sendPhoto(botToken, adminChatId, signedData.signedUrl, caption, { reply_markup: replyMarkup });
+            }
+          }
+
+          // Final fallback: text message with buttons
+          if (!photoSent) {
+            console.log("sendPhoto failed completely, sending text fallback");
+            await sendMessage(botToken, Number(adminChatId), caption + "\n\n📎 Chek rasmi: storage'da saqlangan", { reply_markup: replyMarkup });
           }
         }
 
