@@ -104,6 +104,26 @@ serve(async (req) => {
       });
     }
 
+    let hasPaidHistory = profile.plan === "paid";
+    if (!hasPaidHistory) {
+      const paymentFilters = [`profile_id.eq.${profile.id}`, `telegram_id.eq.${telegram_id}`];
+      if (profile.user_id) paymentFilters.push(`user_id.eq.${profile.user_id}`);
+
+      const { count: approvedPaymentsCount, error: paymentsError } = await supabase
+        .from("payment_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .or(paymentFilters.join(","));
+
+      if (paymentsError) {
+        console.error("Payment history check error:", paymentsError);
+      } else {
+        hasPaidHistory = (approvedPaymentsCount ?? 0) > 0;
+      }
+    }
+
+    const shouldApplyWatermark = !hasPaidHistory && profile.credits_remaining === 1;
+
     // Upload original image to storage
     const base64Clean = image_base64.replace(/^data:image\/\w+;base64,/, "");
     const rawBinary = atob(base64Clean);
@@ -171,7 +191,9 @@ MODEL: ${modelInstruction}
 MASSHTAB: Mahsulot HAQIQIY o'lchamda. Kadrning 25-40% ini egallaydi.
 YORITISH: 3 nuqtali professional. Kinematografik rang sozlash. Asl ranglar saqlanadi.
 DIZAYN: 1-2 nafis matn faqat ${langLabel}. HECH QANDAY inglizcha so'z ishlatma.
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Noyob kompozitsiya.${profile.plan === "free" && profile.credits_remaining <= 1 ? `
+IMLO: Infografikadagi barcha matnlar imlo va grammatika jihatdan 100% to'g'ri bo'lsin. Xato harf bo'lmasin.
+FORMAT (QAT'IY): Yakuniy rasm faqat 1080x1440 piksel bo'lsin. Boshqa o'lcham yaratma.
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Noyob kompozitsiya.${shouldApplyWatermark ? `
 
 WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
 
@@ -246,7 +268,7 @@ WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRA
       originalUrl: origSignedData?.signedUrl || "",
       creditsRemaining: profile.credits_remaining - 1,
       generationId: genId,
-      watermarked: profile.plan === "free" && profile.credits_remaining <= 1,
+      watermarked: shouldApplyWatermark,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

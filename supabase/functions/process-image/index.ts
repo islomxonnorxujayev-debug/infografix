@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("credits_remaining, plan")
+      .select("credits_remaining, plan, telegram_id")
       .eq("user_id", user.id)
       .single();
 
@@ -57,6 +57,26 @@ serve(async (req) => {
         status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    let hasPaidHistory = profile.plan === "paid";
+    if (!hasPaidHistory) {
+      const paymentFilters = [`user_id.eq.${user.id}`];
+      if (profile.telegram_id) paymentFilters.push(`telegram_id.eq.${profile.telegram_id}`);
+
+      const { count: approvedPaymentsCount, error: paymentsError } = await supabaseAdmin
+        .from("payment_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .or(paymentFilters.join(","));
+
+      if (paymentsError) {
+        console.error("Payment history check error:", paymentsError);
+      } else {
+        hasPaidHistory = (approvedPaymentsCount ?? 0) > 0;
+      }
+    }
+
+    const shouldApplyWatermark = !hasPaidHistory && profile.credits_remaining === 1;
 
     let body: any;
     try {
@@ -106,7 +126,11 @@ YORITISH: 3 nuqtali professional yoritish. Kinematografik rang sozlash. Mahsulot
 
 DIZAYN: 1-2 nafis matnli qoplama faqat ${langLabel} — mahsulot kategoriyasi yoki qisqa shior. Zamonaviy toza tipografiya. HECH QANDAY inglizcha so'z ishlatma.
 
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.${profile.plan === "free" && profile.credits_remaining <= 1 ? `
+IMLO: Infografikadagi barcha matnlar imlo va grammatika jihatdan 100% to'g'ri bo'lsin. Hech qanday xato harf yoki noto'g'ri yozuv bo'lmasin.
+
+FORMAT (QAT'IY): Yakuniy rasm faqat 1080x1440 piksel bo'lsin. Boshqa o'lcham yaratma.
+
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.${shouldApplyWatermark ? `
 
 WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
 
@@ -218,7 +242,7 @@ WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRA
       JSON.stringify({
         resultUrl: resultSignedUrl,
         creditsRemaining: profile.credits_remaining - 1,
-        watermarked: profile.plan === "free" && profile.credits_remaining <= 1,
+        watermarked: shouldApplyWatermark,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
