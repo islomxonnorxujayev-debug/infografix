@@ -1,11 +1,26 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Upload, Wand2, Download } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useState, useEffect } from "react";
+
+const showcaseItems = [
+  { before: "/images/before-1.jpg", after: "/images/after-1.jpg", labelKey: "hero.showcase1" },
+  { before: "/images/before-2.jpg", after: "/images/after-2.jpg", labelKey: "hero.showcase2" },
+  { before: "/images/before-3.jpg", after: "/images/after-3.jpg", labelKey: "hero.showcase3" },
+];
 
 const HeroSection = () => {
   const { t } = useLanguage();
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % showcaseItems.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <section className="relative pt-28 sm:pt-32 pb-16 sm:pb-20 overflow-hidden">
@@ -77,6 +92,7 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
+        {/* Before / After Showcase */}
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,27 +100,70 @@ const HeroSection = () => {
           className="mt-12 sm:mt-16 max-w-5xl mx-auto"
         >
           <div className="relative rounded-2xl overflow-hidden shadow-elevated border border-border bg-card p-1.5 sm:p-2">
-            <div className="rounded-xl bg-muted aspect-[16/9] flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 flex">
-                <div className="w-1/2 bg-muted flex items-center justify-center border-r-2 border-primary/30">
-                  <div className="text-center p-4 sm:p-6">
-                    <div className="w-20 h-20 sm:w-32 sm:h-32 md:w-48 md:h-48 rounded-xl bg-secondary mx-auto mb-3 sm:mb-4 flex items-center justify-center">
-                      <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/40" />
+            <div className="rounded-xl overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeIndex}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.5 }}
+                  className="grid grid-cols-2 gap-0"
+                >
+                  {/* Before */}
+                  <div className="relative aspect-[3/4] sm:aspect-[4/3] bg-muted">
+                    <img
+                      src={showcaseItems[activeIndex].before}
+                      alt={t("hero.before")}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
+                      <span className="px-3 py-1 rounded-full bg-destructive/90 text-destructive-foreground text-xs sm:text-sm font-semibold backdrop-blur-sm">
+                        {t("hero.before")}
+                      </span>
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-muted-foreground">{t("gen.original")}</span>
                   </div>
-                </div>
-                <div className="w-1/2 bg-card flex items-center justify-center">
-                  <div className="text-center p-4 sm:p-6">
-                    <div className="w-20 h-20 sm:w-32 sm:h-32 md:w-48 md:h-48 rounded-xl mx-auto mb-3 sm:mb-4 flex items-center justify-center shadow-glow" style={{ background: 'linear-gradient(135deg, hsl(234 89% 60% / 0.08), hsl(262 83% 58% / 0.08))' }}>
-                      <Wand2 className="h-8 w-8 sm:h-12 sm:w-12 text-primary" />
+
+                  {/* After */}
+                  <div className="relative aspect-[3/4] sm:aspect-[4/3] bg-card">
+                    <img
+                      src={showcaseItems[activeIndex].after}
+                      alt={t("hero.after")}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
+                      <span className="px-3 py-1 rounded-full bg-accent/90 text-accent-foreground text-xs sm:text-sm font-semibold backdrop-blur-sm">
+                        {t("hero.after")}
+                      </span>
                     </div>
-                    <span className="text-xs sm:text-sm font-medium text-foreground">{t("gen.aiResult")}</span>
                   </div>
-                </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Divider line */}
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] bg-primary/60 z-10 pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center shadow-lg pointer-events-none">
+                <Wand2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
               </div>
             </div>
+
+            {/* Dots indicator */}
+            <div className="flex items-center justify-center gap-2 pt-3 pb-1">
+              {showcaseItems.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveIndex(i)}
+                  className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${
+                    i === activeIndex ? "bg-primary w-6 sm:w-8" : "bg-muted-foreground/30"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            {t("hero.showcaseDesc")}
+          </p>
         </motion.div>
       </div>
     </section>

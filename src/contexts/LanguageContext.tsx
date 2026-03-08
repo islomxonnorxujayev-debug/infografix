@@ -179,6 +179,12 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.step2Desc": "AI sehrini ko'ring",
     "hero.step3": "Yuklab olish",
     "hero.step3Desc": "Tayyor rasmni oling",
+    "hero.before": "Oldin",
+    "hero.after": "Keyin",
+    "hero.showcase1": "Krossovka",
+    "hero.showcase2": "Kosmetika",
+    "hero.showcase3": "Soat",
+    "hero.showcaseDesc": "Haqiqiy AI natijalari — har qanday mahsulot uchun professional fotosurat",
 
     // Landing - Features
     "feat.label": "Imkoniyatlar",
@@ -429,6 +435,12 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.step2Desc": "AI творит магию",
     "hero.step3": "Скачать",
     "hero.step3Desc": "Получите результат",
+    "hero.before": "До",
+    "hero.after": "После",
+    "hero.showcase1": "Кроссовки",
+    "hero.showcase2": "Косметика",
+    "hero.showcase3": "Часы",
+    "hero.showcaseDesc": "Реальные результаты AI — профессиональные фото для любого товара",
 
     // Landing - Features
     "feat.label": "Возможности",
