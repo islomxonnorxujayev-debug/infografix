@@ -73,6 +73,7 @@ const Dashboard = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultWatermarked, setResultWatermarked] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modelType, setModelType] = useState<"with-model" | "without-model">("without-model");
