@@ -92,7 +92,7 @@ serve(async (req) => {
 
     const prompt = `Elite e-commerce product photographer. Create ONE scroll-stopping product image.
 
-OUTPUT: 1080×1440px (3:4), high-res, no artifacts.
+CRITICAL OUTPUT SIZE: The final image MUST be exactly 1080 pixels wide × 1440 pixels tall (3:4 aspect ratio). This is mandatory — do NOT use any other resolution. Width=1080, Height=1440.
 
 PRODUCT ANALYSIS: Study the uploaded image — category, real-world dimensions, key features, colors, materials.
 
@@ -106,7 +106,7 @@ LIGHTING: 3-point professional. Cinematic color grading. True-to-original produc
 
 DESIGN (${langName}): 1-2 elegant text overlays in ${langName} — product category or tagline. Subtle quality badge. Modern clean typography.
 
-QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time.`;
+QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time. Remember: output MUST be 1080×1440 pixels.`;
 
     console.log("Gen:", generationId, modelType, sceneType, language);
 
