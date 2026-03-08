@@ -164,73 +164,85 @@ const Generate = () => {
     try {
       toast.loading(t("gen.downloading") || "Yuklab olinmoqda...", { id: "dl" });
 
+      const fileName = `infografix-${generationId || Date.now()}.png`;
       const match = resultUrl.match(/\/product-images\/(.+)$/);
-      let storagePath = "";
+      const storagePath = match ? match[1].split("?")[0] : "";
 
-      if (match) {
-        storagePath = match[1].split("?")[0];
-      }
-
-      // For both Telegram and Web: use download-proxy to get blob
-      if (storagePath) {
+      // Helper: get image as blob
+      const getBlob = async (): Promise<Blob | null> => {
+        // Try proxy first
+        if (storagePath) {
+          try {
+            const { data, error } = await supabase.functions.invoke("download-proxy", {
+              body: { storagePath },
+            });
+            if (!error && data) {
+              return data instanceof Blob ? data : new Blob([data], { type: "image/png" });
+            }
+          } catch {}
+        }
+        // Try direct fetch
         try {
-          const { data: proxyData, error: proxyError } = await supabase.functions.invoke("download-proxy", {
-            body: { storagePath },
-          });
+          let url = resultUrl;
+          if (storagePath) {
+            const { data } = await supabase.storage
+              .from("product-images")
+              .createSignedUrl(storagePath, 300);
+            if (data?.signedUrl) url = data.signedUrl;
+          }
+          const res = await fetch(url);
+          if (res.ok) return await res.blob();
+        } catch {}
+        return null;
+      };
 
-          if (!proxyError && proxyData) {
-            const blob = proxyData instanceof Blob ? proxyData : new Blob([proxyData]);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `infografix-${generationId || Date.now()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const blob = await getBlob();
+
+      if (blob) {
+        const file = new File([blob], fileName, { type: "image/png" });
+
+        // Try Web Share API (best for mobile gallery saving)
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: "Infografix AI" });
             toast.success(t("gen.downloaded"), { id: "dl" });
             return;
+          } catch (shareErr: any) {
+            if (shareErr?.name === "AbortError") {
+              toast.dismiss("dl");
+              return;
+            }
           }
-        } catch (proxyErr) {
-          console.warn("Proxy download failed, falling back:", proxyErr);
         }
-      }
 
-      // Fallback: direct signed URL download
-      let directUrl = resultUrl;
-      if (storagePath) {
-        const { data: signedData } = await supabase.storage
-          .from("product-images")
-          .createSignedUrl(storagePath, 300, { download: true });
-        if (signedData?.signedUrl) {
-          directUrl = signedData.signedUrl;
-        }
-      }
-
-      // Telegram fallback: open in system browser
-      if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(directUrl);
-        toast.success("Rasm brauzerda ochildi. Bosib turing va saqlang.", { id: "dl" });
-        return;
-      }
-
-      // Web fallback
-      try {
-        const response = await fetch(directUrl);
-        if (!response.ok) throw new Error("fetch failed");
-        const blob = await response.blob();
+        // Fallback: anchor download
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `infografix-${generationId || Date.now()}.png`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         toast.success(t("gen.downloaded"), { id: "dl" });
-      } catch {
-        window.open(directUrl, '_blank');
-        toast.success("Rasm yangi oynada ochildi.", { id: "dl" });
+        return;
+      }
+
+      // Last resort: Telegram openLink or window.open
+      let directUrl = resultUrl;
+      if (storagePath) {
+        const { data } = await supabase.storage
+          .from("product-images")
+          .createSignedUrl(storagePath, 300, { download: true });
+        if (data?.signedUrl) directUrl = data.signedUrl;
+      }
+
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(directUrl);
+        toast.success("Rasm brauzerda ochildi. Bosib turing va saqlang.", { id: "dl" });
+      } else {
+        window.open(directUrl, "_blank");
+        toast.success(t("gen.downloaded"), { id: "dl" });
       }
     } catch {
       toast.error(t("gen.downloadError"), { id: "dl" });
