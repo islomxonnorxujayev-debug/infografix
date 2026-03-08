@@ -674,20 +674,20 @@ const Dashboard = () => {
             </div>
 
             <label className="block cursor-pointer">
-              <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
+              <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${
                 uploadedFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/30 bg-card"
               }`}>
                 {uploadedFile && previewUrl ? (
                   <div>
-                    <img src={previewUrl} alt="Preview" className="max-h-40 mx-auto rounded-lg mb-3 object-contain" />
-                    <p className="font-medium text-foreground text-sm">{uploadedFile.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                    <img src={previewUrl} alt="Preview" className="max-h-28 mx-auto rounded-lg mb-2 object-contain" />
+                    <p className="font-medium text-foreground text-xs">{uploadedFile.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
                   </div>
                 ) : (
                   <div>
-                    <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                     <p className="font-medium text-foreground text-sm">{t("dash.uploadBtn")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t("dash.uploadLabel")}</p>
+                    <p className="text-xs text-muted-foreground">{t("dash.uploadLabel")}</p>
                   </div>
                 )}
               </div>
