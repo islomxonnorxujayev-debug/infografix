@@ -149,29 +149,29 @@ serve(async (req) => {
     });
 
     const langCode = language || "uz";
-    const langName = langCode === "ru" ? "Russian" : "Uzbek";
+    const langLabel = langCode === "ru" ? "rus tilida" : "o'zbek tilida";
 
     const sceneMap: Record<string, string> = {
-      nature: "Outdoor nature: golden-hour sunlit garden. Warm tones, bokeh background.",
-      lifestyle: "Lifestyle: modern apartment/cafe. Warm ambient light, rich textures.",
-      studio: "Studio: seamless gradient backdrop, 3-point lighting, reflective surface.",
-      minimalist: "Minimalist: solid/gradient backdrop, ample negative space, soft diffused light.",
-      infographic: `Marketplace infographic card. White background. Product centered. Feature callouts with ${langName} labels. ALL text in ${langName}.`,
+      nature: `Tashqi tabiat: oltin soat yoritishi, bog'/o'rmon. Issiq ranglar, bokeh orqa fon.`,
+      lifestyle: `Turmush tarzi: zamonaviy kvartira/kafe. Issiq yoritish, boy teksturalar.`,
+      studio: `Studiya: tekis gradient fon, 3 nuqtali yoritish, aks ettiruvchi sirt.`,
+      minimalist: `Minimalist: bir rangli fon, keng bo'sh joy, yumshoq yorug'lik.`,
+      infographic: `Marketplace infografika kartasi. Oq fon. Mahsulot markazda. Xususiyat belgilari ikonkalar bilan. Barcha yozuvlar faqat ${langLabel}.`,
     };
 
     const modelInstruction = modelType === "with-model"
-      ? "Include photorealistic model naturally using the product."
-      : "Product-only. Dynamic angles, artistic shadows, complementary props.";
+      ? "Fotorealistik modelni mahsulotdan foydalanayotgan holda tabiiy qo'shing."
+      : "Faqat mahsulot. Dinamik burchaklar, badiiy soyalar, mos proplar.";
 
-    const prompt = `Elite e-commerce product photographer. Create ONE scroll-stopping product image.
-CRITICAL OUTPUT SIZE: The final image MUST be exactly 1080 pixels wide × 1440 pixels tall (3:4 aspect ratio). This is mandatory — do NOT use any other resolution. Width=1080, Height=1440.
-PRODUCT ANALYSIS: Study uploaded image — category, dimensions, features, colors, materials.
-SCENE: ${sceneMap[sceneType] || sceneMap.studio}
+    const prompt = `Sen professional e-commerce mahsulot fotografi. Bitta ajoyib mahsulot rasmi yarat.
+MUHIM O'LCHAM: Rasm aniq 1080x1440 piksel (3:4 nisbat) bo'lishi SHART.
+MAHSULOT TAHLILI: Yuklangan rasmni chuqur o'rganing — kategoriyasi, haqiqiy o'lchamlari, xususiyatlari, ranglari, materiali, teksturasi. Har bir detalga e'tibor ber.
+SAHNA: ${sceneMap[sceneType] || sceneMap.studio}
 MODEL: ${modelInstruction}
-SCALE: Product at CORRECT real-world size. 25-40% of frame.
-LIGHTING: 3-point professional. Cinematic color grading. True colors. Subtle vignette.
-DESIGN (${langName}): 1-2 elegant text overlays in ${langName}. Modern clean typography.
-QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition. Remember: output MUST be 1080×1440 pixels.`;
+MASSHTAB: Mahsulot HAQIQIY o'lchamda. Kadrning 25-40% ini egallaydi.
+YORITISH: 3 nuqtali professional. Kinematografik rang sozlash. Asl ranglar saqlanadi.
+DIZAYN: 1-2 nafis matn faqat ${langLabel}. HECH QANDAY inglizcha so'z ishlatma.
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Noyob kompozitsiya.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -180,7 +180,7 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition. Remember: o
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: "google/gemini-2.5-flash-image",
         messages: [{
           role: "user",
           content: [
