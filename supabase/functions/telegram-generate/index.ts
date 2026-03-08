@@ -88,7 +88,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, credits_remaining, user_id")
+      .select("id, credits_remaining, user_id, plan")
       .eq("telegram_id", telegram_id)
       .single();
 
