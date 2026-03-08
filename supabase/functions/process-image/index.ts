@@ -218,6 +218,7 @@ WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRA
       JSON.stringify({
         resultUrl: resultSignedUrl,
         creditsRemaining: profile.credits_remaining - 1,
+        watermarked: profile.plan === "free",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
