@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, CheckCircle2, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +32,7 @@ const Generate = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultWatermarked, setResultWatermarked] = useState(false);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
@@ -148,6 +149,7 @@ const Generate = () => {
       stopTimers();
       setProgress(100);
       setResultUrl(fnData.resultUrl);
+      setResultWatermarked(fnData.watermarked || false);
       setShowComplete(true);
       fireConfetti();
       toast.success(t("gen.success"));
@@ -201,6 +203,7 @@ const Generate = () => {
   const handleNewImage = () => {
     setUploadedFile(null);
     setResultUrl(null);
+    setResultWatermarked(false);
     setGenerationId(null);
     setSelectedModel(null);
     setSelectedScene(null);
@@ -441,6 +444,27 @@ const Generate = () => {
                         <div className="w-1/2 text-center py-2 text-primary">{t("gen.aiResult")}</div>
                       </div>
                     </div>
+
+                    {resultWatermarked && (
+                      <div className="max-w-md mx-auto rounded-xl border border-primary/30 bg-primary/5 p-4 mb-4 text-center space-y-2">
+                        <p className="text-sm font-medium text-foreground">
+                          ⚠️ {lang === "ru" ? "На изображении есть водяной знак" : "Rasmda watermark mavjud"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {lang === "ru" 
+                            ? "Купите кредиты, чтобы получать изображения без водяного знака" 
+                            : "Watermarksiz rasmlar olish uchun kredit sotib oling"}
+                        </p>
+                        <Button 
+                          size="sm" 
+                          className="gradient-primary border-0 text-xs"
+                          onClick={() => navigate("/balance")}
+                        >
+                          <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                          {lang === "ru" ? "Купить кредиты" : "Kredit sotib olish"}
+                        </Button>
+                      </div>
+                    )}
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Button size="lg" className="gradient-primary border-0 px-6 sm:px-8 w-full sm:w-auto" onClick={handleDownload}>

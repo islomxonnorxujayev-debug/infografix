@@ -73,6 +73,7 @@ const Dashboard = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultWatermarked, setResultWatermarked] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modelType, setModelType] = useState<"with-model" | "without-model">("without-model");
@@ -337,6 +338,7 @@ const Dashboard = () => {
           return;
         }
         setResultUrl(data.resultUrl);
+        setResultWatermarked(data.watermarked || false);
         setCredits(data.creditsRemaining);
         setGenerations(prev => [{
           id: data.generationId,
@@ -443,6 +445,7 @@ const Dashboard = () => {
         }
 
         setResultUrl(fnData.resultUrl);
+        setResultWatermarked(fnData.watermarked || false);
         setGenerations(prev => [{
           id: genData.id,
           result_url: fnData.resultUrl,
@@ -471,6 +474,7 @@ const Dashboard = () => {
   const handleReset = () => {
     setUploadedFile(null);
     setResultUrl(null);
+    setResultWatermarked(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -606,7 +610,7 @@ const Dashboard = () => {
                 <div className="w-1/2 border-r border-border bg-muted flex items-center justify-center p-2">
                   {previewUrl && <img src={previewUrl} alt={t("dash.original")} className="max-h-40 object-contain rounded-lg" />}
                 </div>
-                <div className="w-1/2 flex items-center justify-center p-2">
+                <div className="w-1/2 flex items-center justify-center p-2 relative">
                   <img src={resultUrl} alt={t("dash.aiResult")} className="max-h-40 object-contain rounded-lg" />
                 </div>
               </div>
@@ -615,6 +619,28 @@ const Dashboard = () => {
                 <div className="w-1/2 text-center py-1.5 text-primary">{t("dash.aiResult")}</div>
               </div>
             </div>
+
+            {resultWatermarked && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-center space-y-2">
+                <p className="text-xs font-medium text-foreground">
+                  ⚠️ {lang === "ru" ? "На изображении есть водяной знак" : "Rasmda watermark mavjud"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {lang === "ru" 
+                    ? "Купите кредиты, чтобы получать изображения без водяного знака" 
+                    : "Watermarksiz rasmlar olish uchun kredit sotib oling"}
+                </p>
+                <Button 
+                  size="sm" 
+                  className="bg-primary hover:bg-primary/90 text-xs"
+                  onClick={() => navigate("/balance")}
+                >
+                  <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                  {lang === "ru" ? "Купить кредиты" : "Kredit sotib olish"}
+                </Button>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={() => handleDownload()}>
                 <Download className="mr-2 h-4 w-4" />

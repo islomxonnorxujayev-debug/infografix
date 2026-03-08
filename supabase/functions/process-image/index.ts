@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("credits_remaining")
+      .select("credits_remaining, plan")
       .eq("user_id", user.id)
       .single();
 
@@ -106,7 +106,9 @@ YORITISH: 3 nuqtali professional yoritish. Kinematografik rang sozlash. Mahsulot
 
 DIZAYN: 1-2 nafis matnli qoplama faqat ${langLabel} — mahsulot kategoriyasi yoki qisqa shior. Zamonaviy toza tipografiya. HECH QANDAY inglizcha so'z ishlatma.
 
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.`;
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.${profile.plan === "free" ? `
+
+WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
 
     console.log("Gen:", generationId, modelType, sceneType, language);
 
@@ -216,6 +218,7 @@ SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safa
       JSON.stringify({
         resultUrl: resultSignedUrl,
         creditsRemaining: profile.credits_remaining - 1,
+        watermarked: profile.plan === "free",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
