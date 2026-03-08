@@ -1,13 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Sparkles, ArrowLeft, Upload, Settings, Download, Loader2, ImageIcon, User, Package, TreePine, Home, Camera, LayoutGrid, BarChart3, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 const modelOptions = [
   { id: "with-model", labelKey: "gen.withModel", descKey: "gen.withModelDesc", icon: User },
@@ -33,6 +35,11 @@ const Generate = () => {
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showComplete, setShowComplete] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const steps = [
     { label: t("gen.step.upload"), icon: Upload },
@@ -56,10 +63,37 @@ const Generate = () => {
     }
   };
 
+  const startTimers = () => {
+    setElapsedSeconds(0);
+    setProgress(0);
+    timerRef.current = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
+    progressRef.current = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 95) return 95;
+        const increment = prev < 30 ? 2.5 : prev < 60 ? 1.5 : prev < 80 ? 0.8 : 0.3;
+        return Math.min(prev + increment, 95);
+      });
+    }, 500);
+  };
+
+  const stopTimers = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+  };
+
+  useEffect(() => { return () => stopTimers(); }, []);
+
+  const fireConfetti = () => {
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    setTimeout(() => confetti({ particleCount: 50, spread: 100, origin: { y: 0.5 } }), 300);
+  };
+
   const handleProcess = async () => {
     if (!uploadedFile || !user || !selectedModel || !selectedScene) return;
     setProcessing(true);
     setCurrentStep(2);
+    setShowComplete(false);
+    startTimers();
 
     try {
       const fileExt = uploadedFile.name.split('.').pop();
@@ -104,15 +138,21 @@ const Generate = () => {
       if (fnError) throw fnError;
       if (fnData?.error) {
         toast.error(fnData.error);
+        stopTimers();
         setProcessing(false);
         return;
       }
 
+      stopTimers();
+      setProgress(100);
       setResultUrl(fnData.resultUrl);
+      setShowComplete(true);
+      fireConfetti();
       toast.success(t("gen.success"));
     } catch (err: any) {
       console.error("Processing error:", err);
       toast.error(err.message || t("gen.processError"));
+      stopTimers();
       setCurrentStep(1);
     } finally {
       setProcessing(false);
@@ -139,7 +179,6 @@ const Generate = () => {
           });
 
           if (!proxyError && proxyData) {
-            // proxyData is already a blob from the edge function
             const blob = proxyData instanceof Blob ? proxyData : new Blob([proxyData]);
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -205,6 +244,9 @@ const Generate = () => {
     setSelectedModel(null);
     setSelectedScene(null);
     setCurrentStep(0);
+    setProgress(0);
+    setElapsedSeconds(0);
+    setShowComplete(false);
   };
 
   const canProceedStep1 = selectedModel !== null && selectedScene !== null;
@@ -378,15 +420,46 @@ const Generate = () => {
                     <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-primary mx-auto mb-4 sm:mb-6 animate-spin" />
                     <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">{t("gen.processing")}</h2>
                     <p className="text-sm text-muted-foreground">{t("gen.processingDesc")}</p>
+
+                    {/* Progress bar with percentage */}
+                    <div className="mt-6 max-w-sm mx-auto">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                        <span>{elapsedSeconds} {lang === "ru" ? "сек" : "soniya"}</span>
+                        <span className="font-semibold text-primary">{Math.round(progress)}%</span>
+                      </div>
+                      <Progress value={progress} className="h-3" />
+                    </div>
+
                     <div className="mt-4 sm:mt-6 max-w-xs mx-auto space-y-1.5 text-left text-xs sm:text-sm text-muted-foreground">
-                      <p>✅ {t("gen.analyzing")}</p>
-                      <p>✅ {selectedSceneLabel ? t(selectedSceneLabel) : ""} {t("gen.creatingBg")}</p>
-                      <p>✅ {selectedModel === "with-model" ? t("gen.addingModel") : t("gen.proComposition")}</p>
-                      <p>✅ {t("gen.resizing")}</p>
+                      <p className={progress > 10 ? "text-primary" : ""}>
+                        {progress > 10 ? "✅" : "⏳"} {t("gen.analyzing")}
+                      </p>
+                      <p className={progress > 30 ? "text-primary" : ""}>
+                        {progress > 30 ? "✅" : "⏳"} {selectedSceneLabel ? t(selectedSceneLabel) : ""} {t("gen.creatingBg")}
+                      </p>
+                      <p className={progress > 60 ? "text-primary" : ""}>
+                        {progress > 60 ? "✅" : "⏳"} {selectedModel === "with-model" ? t("gen.addingModel") : t("gen.proComposition")}
+                      </p>
+                      <p className={progress > 85 ? "text-primary" : ""}>
+                        {progress > 85 ? "✅" : "⏳"} {t("gen.resizing")}
+                      </p>
                     </div>
                   </div>
                 ) : resultUrl ? (
                   <div>
+                    {showComplete && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mb-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-green-500/10 border border-green-500/30"
+                      >
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                        <span className="font-display font-bold text-green-500 text-lg">
+                          {lang === "ru" ? "Готово! 🎉" : "Tayyor! 🎉"}
+                        </span>
+                      </motion.div>
+                    )}
+
                     <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">{t("gen.done")}</h2>
 
                     <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card overflow-hidden mb-4 sm:mb-6">
