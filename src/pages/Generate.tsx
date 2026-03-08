@@ -105,15 +105,17 @@ const Generate = () => {
 
       if (uploadError) throw new Error(`${t("gen.uploadError")}: ${uploadError.message}`);
 
-      const { data: urlData } = supabase.storage
+      const { data: signedData, error: signedError } = await supabase.storage
         .from("product-images")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 30); // 30 min
+
+      if (signedError || !signedData?.signedUrl) throw new Error("Rasm URL yaratishda xatolik");
 
       const { data: genData, error: genError } = await supabase
         .from("generations")
         .insert({
           user_id: user.id,
-          original_url: urlData.publicUrl,
+          original_url: filePath,
           marketplace: `${t(modelOptions.find(m => m.id === selectedModel)?.labelKey || "")} / ${t(sceneOptions.find(s => s.id === selectedScene)?.labelKey || "")}`,
           style_preset: selectedScene,
           enhancements: { model: selectedModel, scene: selectedScene, language: lang },
@@ -127,7 +129,7 @@ const Generate = () => {
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
         body: {
-          imageUrl: urlData.publicUrl,
+          imageUrl: signedData.signedUrl,
           modelType: selectedModel,
           sceneType: selectedScene,
           generationId: genData.id,
