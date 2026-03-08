@@ -445,6 +445,7 @@ const Dashboard = () => {
         }
 
         setResultUrl(fnData.resultUrl);
+        setResultWatermarked(fnData.watermarked || false);
         setGenerations(prev => [{
           id: genData.id,
           result_url: fnData.resultUrl,
