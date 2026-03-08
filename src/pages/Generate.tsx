@@ -32,6 +32,7 @@ const Generate = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultWatermarked, setResultWatermarked] = useState(false);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
