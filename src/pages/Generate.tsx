@@ -203,6 +203,7 @@ const Generate = () => {
   const handleNewImage = () => {
     setUploadedFile(null);
     setResultUrl(null);
+    setResultWatermarked(false);
     setGenerationId(null);
     setSelectedModel(null);
     setSelectedScene(null);
