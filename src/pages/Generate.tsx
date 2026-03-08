@@ -164,84 +164,31 @@ const Generate = () => {
     try {
       toast.loading(t("gen.downloading") || "Yuklab olinmoqda...", { id: "dl" });
 
-      const fileName = `infografix-${generationId || Date.now()}.png`;
       const match = resultUrl.match(/\/product-images\/(.+)$/);
       const storagePath = match ? match[1].split("?")[0] : "";
 
-      // Helper: get image as blob
-      const getBlob = async (): Promise<Blob | null> => {
-        // Try proxy first
-        if (storagePath) {
-          try {
-            const { data, error } = await supabase.functions.invoke("download-proxy", {
-              body: { storagePath },
-            });
-            if (!error && data) {
-              return data instanceof Blob ? data : new Blob([data], { type: "image/png" });
-            }
-          } catch {}
-        }
-        // Try direct fetch
-        try {
-          let url = resultUrl;
-          if (storagePath) {
-            const { data } = await supabase.storage
-              .from("product-images")
-              .createSignedUrl(storagePath, 300);
-            if (data?.signedUrl) url = data.signedUrl;
-          }
-          const res = await fetch(url);
-          if (res.ok) return await res.blob();
-        } catch {}
-        return null;
-      };
-
-      const blob = await getBlob();
-
-      if (blob) {
-        const file = new File([blob], fileName, { type: "image/png" });
-
-        // Try Web Share API (best for mobile gallery saving)
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          try {
-            await navigator.share({ files: [file], title: "Infografix AI" });
-            toast.success(t("gen.downloaded"), { id: "dl" });
-            return;
-          } catch (shareErr: any) {
-            if (shareErr?.name === "AbortError") {
-              toast.dismiss("dl");
-              return;
-            }
-          }
-        }
-
-        // Fallback: anchor download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        toast.success(t("gen.downloaded"), { id: "dl" });
-        return;
-      }
-
-      // Last resort: Telegram openLink or window.open
-      let directUrl = resultUrl;
+      // Get a signed URL with download flag
+      let downloadUrl = resultUrl;
       if (storagePath) {
         const { data } = await supabase.storage
           .from("product-images")
           .createSignedUrl(storagePath, 300, { download: true });
-        if (data?.signedUrl) directUrl = data.signedUrl;
+        if (data?.signedUrl) downloadUrl = data.signedUrl;
       }
 
+      // Telegram WebApp — open link directly
       if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(directUrl);
-        toast.success("Rasm brauzerda ochildi. Bosib turing va saqlang.", { id: "dl" });
+        window.Telegram.WebApp.openLink(downloadUrl);
+        toast.success("Rasm ochildi. Bosib turing va saqlang.", { id: "dl" });
       } else {
-        window.open(directUrl, "_blank");
+        // Browser: open signed URL with download param
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `infografix-${generationId || Date.now()}.png`;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         toast.success(t("gen.downloaded"), { id: "dl" });
       }
     } catch {
