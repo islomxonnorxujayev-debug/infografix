@@ -67,6 +67,7 @@ const Dashboard = () => {
   const [credits, setCredits] = useState<number>(0);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showcaseIndex, setShowcaseIndex] = useState(0);
 
   // Generate state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
