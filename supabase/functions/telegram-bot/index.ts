@@ -31,12 +31,23 @@ async function sendMessage(token: string, chatId: number, text: string, opts?: a
   });
 }
 
-async function sendPhoto(token: string, chatId: number | string, photoUrl: string, caption?: string, opts?: any) {
-  await fetch(`${TELEGRAM_API}${token}/sendPhoto`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML", ...opts }),
-  });
+async function sendPhoto(token: string, chatId: number | string, photoUrl: string, caption?: string, opts?: any): Promise<boolean> {
+  try {
+    const res = await fetch(`${TELEGRAM_API}${token}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML", ...opts }),
+    });
+    const result = await res.json();
+    if (!result.ok) {
+      console.error("sendPhoto failed:", JSON.stringify(result));
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("sendPhoto error:", e);
+    return false;
+  }
 }
 
 async function answerCallbackQuery(token: string, callbackQueryId: string, text?: string) {
@@ -187,12 +198,21 @@ serve(async (req) => {
           const newCredits = profile.credits_remaining + payReq.credits;
           await supabase.from("profiles").update({ credits_remaining: newCredits, updated_at: new Date().toISOString() }).eq("id", profile.id);
 
-          // Update admin message
+          // Update admin message (try editMessageCaption for photo, editMessageText for text)
           if (cbChatId && cbMessageId) {
+            const statusText = `\n\n✅ <b>TASDIQLANDI</b>\n💰 ${payReq.credits} kredit qo'shildi\n📊 Yangi balans: ${newCredits}`;
             const oldCaption = cb.message?.caption || "";
-            await editMessageCaption(botToken, cbChatId, cbMessageId,
-              oldCaption + `\n\n✅ <b>TASDIQLANDI</b>\n💰 ${payReq.credits} kredit qo'shildi\n📊 Yangi balans: ${newCredits}`
-            );
+            const oldText = cb.message?.text || "";
+            
+            if (oldCaption) {
+              await editMessageCaption(botToken, cbChatId, cbMessageId, oldCaption + statusText);
+            } else if (oldText) {
+              await fetch(`${TELEGRAM_API}${botToken}/editMessageText`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: cbChatId, message_id: cbMessageId, text: oldText + statusText, parse_mode: "HTML" }),
+              });
+            }
           }
 
           // Notify user
@@ -218,10 +238,19 @@ serve(async (req) => {
           await supabase.from("payment_requests").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", paymentId);
 
           if (cbChatId && cbMessageId) {
+            const statusText = `\n\n❌ <b>RAD ETILDI</b>`;
             const oldCaption = cb.message?.caption || "";
-            await editMessageCaption(botToken, cbChatId, cbMessageId,
-              oldCaption + `\n\n❌ <b>RAD ETILDI</b>`
-            );
+            const oldText = cb.message?.text || "";
+            
+            if (oldCaption) {
+              await editMessageCaption(botToken, cbChatId, cbMessageId, oldCaption + statusText);
+            } else if (oldText) {
+              await fetch(`${TELEGRAM_API}${botToken}/editMessageText`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: cbChatId, message_id: cbMessageId, text: oldText + statusText, parse_mode: "HTML" }),
+              });
+            }
           }
 
           // Find profile to notify user
@@ -451,20 +480,34 @@ serve(async (req) => {
             `🎯 ${credits} kredit\n\n` +
             `⏳ Tasdiqlash kutilmoqda`;
 
-          // Use the Telegram file_id directly to send the photo to admin (no need for signed URL)
-          try {
-            await sendPhoto(botToken, adminChatId, photoFile.file_id, caption, {
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    { text: "✅ Tasdiqlash", callback_data: `approve:${paymentReq.id}` },
-                    { text: "❌ Rad etish", callback_data: `reject:${paymentReq.id}` },
-                  ]
-                ]
-              }
-            });
-          } catch (notifErr) {
-            console.error("Admin notification error:", notifErr);
+          // Send photo with approve/reject buttons to admin
+          const replyMarkup = {
+            inline_keyboard: [
+              [
+                { text: "✅ Tasdiqlash", callback_data: `approve:${paymentReq.id}` },
+                { text: "❌ Rad etish", callback_data: `reject:${paymentReq.id}` },
+              ]
+            ]
+          };
+
+          // Try sending photo with file_id first
+          let photoSent = await sendPhoto(botToken, adminChatId, photoFile.file_id, caption, { reply_markup: replyMarkup });
+
+          // If file_id fails, try signed URL
+          if (!photoSent) {
+            console.log("file_id failed, trying signed URL...");
+            const { data: signedData } = await supabase.storage
+              .from("payment-screenshots")
+              .createSignedUrl(storagePath, 60 * 60 * 24);
+            if (signedData?.signedUrl) {
+              photoSent = await sendPhoto(botToken, adminChatId, signedData.signedUrl, caption, { reply_markup: replyMarkup });
+            }
+          }
+
+          // Final fallback: text message with buttons
+          if (!photoSent) {
+            console.log("sendPhoto failed completely, sending text fallback");
+            await sendMessage(botToken, Number(adminChatId), caption + "\n\n📎 Chek rasmi: storage'da saqlangan", { reply_markup: replyMarkup });
           }
         }
 

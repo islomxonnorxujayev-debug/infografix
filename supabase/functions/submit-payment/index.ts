@@ -143,10 +143,11 @@ serve(async (req) => {
         ]]
       };
 
-      try {
-        if (signedData?.signedUrl) {
-          // Send photo with caption and buttons
-          await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      // Try sending photo with signed URL
+      let photoSent = false;
+      if (signedData?.signedUrl) {
+        try {
+          const photoRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -157,21 +158,31 @@ serve(async (req) => {
               reply_markup: inlineKeyboard,
             }),
           });
-        } else {
-          // Fallback: send text with buttons if screenshot URL fails
+          const photoResult = await photoRes.json();
+          photoSent = photoResult.ok === true;
+          if (!photoSent) console.error("sendPhoto failed:", JSON.stringify(photoResult));
+        } catch (e) {
+          console.error("sendPhoto error:", e);
+        }
+      }
+
+      // Fallback: text message with buttons
+      if (!photoSent) {
+        console.log("Photo send failed, sending text fallback with buttons");
+        try {
           await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chat_id: adminChatId,
-              text: caption,
+              text: caption + "\n\n📎 Chek rasmi admin panelda ko'rinadi",
               parse_mode: "HTML",
               reply_markup: inlineKeyboard,
             }),
           });
+        } catch (e) {
+          console.error("Fallback sendMessage also failed:", e);
         }
-      } catch (notifErr) {
-        console.error("Admin notification error:", notifErr);
       }
     }
 
