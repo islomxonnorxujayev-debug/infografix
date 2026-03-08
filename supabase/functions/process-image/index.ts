@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("credits_remaining")
+      .select("credits_remaining, plan")
       .eq("user_id", user.id)
       .single();
 
