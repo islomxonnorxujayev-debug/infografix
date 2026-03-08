@@ -445,6 +445,27 @@ const Generate = () => {
                       </div>
                     </div>
 
+                    {resultWatermarked && (
+                      <div className="max-w-md mx-auto rounded-xl border border-primary/30 bg-primary/5 p-4 mb-4 text-center space-y-2">
+                        <p className="text-sm font-medium text-foreground">
+                          ⚠️ {lang === "ru" ? "На изображении есть водяной знак" : "Rasmda watermark mavjud"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {lang === "ru" 
+                            ? "Купите кредиты, чтобы получать изображения без водяного знака" 
+                            : "Watermarksiz rasmlar olish uchun kredit sotib oling"}
+                        </p>
+                        <Button 
+                          size="sm" 
+                          className="gradient-primary border-0 text-xs"
+                          onClick={() => navigate("/balance")}
+                        >
+                          <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                          {lang === "ru" ? "Купить кредиты" : "Kredit sotib olish"}
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Button size="lg" className="gradient-primary border-0 px-6 sm:px-8 w-full sm:w-auto" onClick={handleDownload}>
                         <Download className="mr-2 h-5 w-5" />
