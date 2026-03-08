@@ -104,6 +104,26 @@ serve(async (req) => {
       });
     }
 
+    let hasPaidHistory = profile.plan === "paid";
+    if (!hasPaidHistory) {
+      const paymentFilters = [`profile_id.eq.${profile.id}`, `telegram_id.eq.${telegram_id}`];
+      if (profile.user_id) paymentFilters.push(`user_id.eq.${profile.user_id}`);
+
+      const { count: approvedPaymentsCount, error: paymentsError } = await supabase
+        .from("payment_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .or(paymentFilters.join(","));
+
+      if (paymentsError) {
+        console.error("Payment history check error:", paymentsError);
+      } else {
+        hasPaidHistory = (approvedPaymentsCount ?? 0) > 0;
+      }
+    }
+
+    const shouldApplyWatermark = !hasPaidHistory && profile.credits_remaining === 1;
+
     // Upload original image to storage
     const base64Clean = image_base64.replace(/^data:image\/\w+;base64,/, "");
     const rawBinary = atob(base64Clean);

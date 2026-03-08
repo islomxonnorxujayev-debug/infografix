@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("credits_remaining, plan")
+      .select("credits_remaining, plan, telegram_id")
       .eq("user_id", user.id)
       .single();
 
@@ -57,6 +57,26 @@ serve(async (req) => {
         status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    let hasPaidHistory = profile.plan === "paid";
+    if (!hasPaidHistory) {
+      const paymentFilters = [`user_id.eq.${user.id}`];
+      if (profile.telegram_id) paymentFilters.push(`telegram_id.eq.${profile.telegram_id}`);
+
+      const { count: approvedPaymentsCount, error: paymentsError } = await supabaseAdmin
+        .from("payment_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .or(paymentFilters.join(","));
+
+      if (paymentsError) {
+        console.error("Payment history check error:", paymentsError);
+      } else {
+        hasPaidHistory = (approvedPaymentsCount ?? 0) > 0;
+      }
+    }
+
+    const shouldApplyWatermark = !hasPaidHistory && profile.credits_remaining === 1;
 
     let body: any;
     try {
