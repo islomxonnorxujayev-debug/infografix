@@ -31,15 +31,30 @@ async function sendMessage(token: string, chatId: number, text: string, opts?: a
   });
 }
 
-async function sendPhoto(token: string, chatId: number, photoUrl: string, caption?: string) {
+async function sendPhoto(token: string, chatId: number | string, photoUrl: string, caption?: string, opts?: any) {
   await fetch(`${TELEGRAM_API}${token}/sendPhoto`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML" }),
+    body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML", ...opts }),
   });
 }
 
-// Input validation helpers
+async function answerCallbackQuery(token: string, callbackQueryId: string, text?: string) {
+  await fetch(`${TELEGRAM_API}${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text }),
+  });
+}
+
+async function editMessageCaption(token: string, chatId: number | string, messageId: number, caption: string) {
+  await fetch(`${TELEGRAM_API}${token}/editMessageCaption`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId, caption, parse_mode: "HTML" }),
+  });
+}
+
 function sanitizeString(str: string | undefined, maxLen: number): string {
   if (!str || typeof str !== "string") return "";
   return str.slice(0, maxLen).replace(/[<>&"']/g, (c) => {
@@ -52,7 +67,7 @@ function isValidTelegramId(id: any): id is number {
   return typeof id === "number" && Number.isInteger(id) && id > 0;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 async function getOrCreateProfile(supabase: any, telegramId: number, username?: string, firstName?: string) {
   if (!isValidTelegramId(telegramId)) return null;
@@ -60,7 +75,6 @@ async function getOrCreateProfile(supabase: any, telegramId: number, username?: 
   const cleanUsername = sanitizeString(username, 64);
   const cleanFirstName = sanitizeString(firstName, 128);
   
-  // Try to find existing profile
   const { data: existing } = await supabase
     .from("profiles")
     .select("*")
@@ -102,7 +116,7 @@ serve(async (req) => {
   const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  const adminChatId = Deno.env.get("ADMIN_TELEGRAM_CHAT_ID");
 
   if (!botToken) return new Response(JSON.stringify({ error: "Bot token not configured" }), { status: 500 });
 
@@ -122,6 +136,114 @@ serve(async (req) => {
 
   try {
     const update = await req.json();
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    // === Handle callback_query (approve/reject buttons) ===
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const data = cb.data || "";
+      const cbChatId = cb.message?.chat?.id;
+      const cbMessageId = cb.message?.message_id;
+
+      if (data.startsWith("approve:") || data.startsWith("reject:")) {
+        const action = data.startsWith("approve:") ? "approve" : "reject";
+        const paymentId = data.split(":")[1];
+
+        if (action === "approve") {
+          // Use the approve_payment RPC - but we need to call it as admin
+          // Since this is service role, we need a workaround
+          // Let's directly update the tables
+          const { data: payReq } = await supabase
+            .from("payment_requests")
+            .select("*")
+            .eq("id", paymentId)
+            .eq("status", "pending")
+            .single();
+
+          if (!payReq) {
+            await answerCallbackQuery(botToken, cb.id, "❌ Bu so'rov allaqachon ko'rib chiqilgan");
+            return new Response("OK");
+          }
+
+          // Find profile
+          let profile = null;
+          if (payReq.profile_id) {
+            const { data: p } = await supabase.from("profiles").select("*").eq("id", payReq.profile_id).single();
+            profile = p;
+          } else if (payReq.telegram_id) {
+            const { data: p } = await supabase.from("profiles").select("*").eq("telegram_id", payReq.telegram_id).single();
+            profile = p;
+          }
+
+          if (!profile) {
+            await answerCallbackQuery(botToken, cb.id, "❌ Profil topilmadi");
+            return new Response("OK");
+          }
+
+          // Update payment status
+          await supabase.from("payment_requests").update({ status: "approved", updated_at: new Date().toISOString() }).eq("id", paymentId);
+
+          // Add credits
+          const newCredits = profile.credits_remaining + payReq.credits;
+          await supabase.from("profiles").update({ credits_remaining: newCredits, updated_at: new Date().toISOString() }).eq("id", profile.id);
+
+          // Update admin message
+          if (cbChatId && cbMessageId) {
+            const oldCaption = cb.message?.caption || "";
+            await editMessageCaption(botToken, cbChatId, cbMessageId,
+              oldCaption + `\n\n✅ <b>TASDIQLANDI</b>\n💰 ${payReq.credits} kredit qo'shildi\n📊 Yangi balans: ${newCredits}`
+            );
+          }
+
+          // Notify user
+          if (profile.telegram_id) {
+            await sendMessage(botToken, profile.telegram_id,
+              `✅ <b>To'lovingiz tasdiqlandi!</b>\n\n` +
+              `💰 ${payReq.credits} ta kredit qo'shildi\n` +
+              `📊 Yangi balans: <b>${newCredits}</b> ta rasm\n\n` +
+              `📱 Rasm yaratish uchun quyidagi tugmani bosing!`,
+              {
+                reply_markup: {
+                  inline_keyboard: [[
+                    { text: "📱 Rasm yaratish", web_app: { url: WEB_APP_URL } }
+                  ]]
+                }
+              }
+            );
+          }
+
+          await answerCallbackQuery(botToken, cb.id, `✅ Tasdiqlandi! ${payReq.credits} kredit qo'shildi`);
+        } else {
+          // Reject
+          await supabase.from("payment_requests").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", paymentId);
+
+          if (cbChatId && cbMessageId) {
+            const oldCaption = cb.message?.caption || "";
+            await editMessageCaption(botToken, cbChatId, cbMessageId,
+              oldCaption + `\n\n❌ <b>RAD ETILDI</b>`
+            );
+          }
+
+          // Find profile to notify user
+          const { data: payReq } = await supabase.from("payment_requests").select("telegram_id").eq("id", paymentId).single();
+          if (payReq?.telegram_id) {
+            await sendMessage(botToken, payReq.telegram_id,
+              `❌ <b>To'lov so'rovingiz rad etildi</b>\n\n` +
+              `To'lov ma'lumotlarini tekshirib qayta yuboring yoki admin bilan bog'laning.`
+            );
+          }
+
+          await answerCallbackQuery(botToken, cb.id, "❌ Rad etildi");
+        }
+
+        return new Response("OK");
+      }
+
+      await answerCallbackQuery(botToken, cb.id);
+      return new Response("OK");
+    }
+
+    // === Handle message ===
     const message = update.message;
     if (!message) return new Response("OK");
 
@@ -129,16 +251,12 @@ serve(async (req) => {
     const telegramId = message.from.id;
     const username = message.from.username;
     const firstName = message.from.first_name;
-    const text = (message.text || "").slice(0, 500); // Limit text length
+    const text = (message.text || "").slice(0, 500);
     
-    // Validate telegram ID
     if (!isValidTelegramId(telegramId)) {
       return new Response("OK");
     }
-    
-    const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Auto-register / find user
     const profile = await getOrCreateProfile(supabase, telegramId, username, firstName);
     if (!profile) {
       await sendMessage(botToken, chatId, "❌ Xatolik yuz berdi. Qayta urinib ko'ring.");
@@ -195,7 +313,7 @@ serve(async (req) => {
       return new Response("OK");
     }
 
-    // === /buy{N} - specific package ===
+    // === /buy{N} ===
     const buyMatch = text.match(/^\/buy(\d+)$/);
     if (buyMatch) {
       const pkgKey = buyMatch[1];
@@ -206,7 +324,6 @@ serve(async (req) => {
         return new Response("OK");
       }
 
-      // Set bot_state to awaiting screenshot
       await supabase.from("profiles").update({
         bot_state: `awaiting_payment:${pkg.key}:${pkg.credits}:${AMOUNTS[pkg.key]}`,
       }).eq("id", profile.id);
@@ -262,12 +379,12 @@ serve(async (req) => {
 
     // === Handle photo ===
     if (message.photo && message.photo.length > 0) {
-      // Validate file size
       const largestPhoto = message.photo[message.photo.length - 1];
       if (largestPhoto.file_size && largestPhoto.file_size > MAX_FILE_SIZE) {
         await sendMessage(botToken, chatId, "❌ Rasm juda katta (max 10MB). Kichikroq rasm yuboring.");
         return new Response("OK");
       }
+
       // Check if awaiting payment screenshot
       if (profile.bot_state && profile.bot_state.startsWith("awaiting_payment:")) {
         const parts = profile.bot_state.split(":");
@@ -290,16 +407,15 @@ serve(async (req) => {
         const imageRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
         const imageBytes = new Uint8Array(await imageRes.arrayBuffer());
 
-        // Upload screenshot to PRIVATE storage bucket
+        // Upload screenshot to storage
         const storagePath = `${telegramId}/${crypto.randomUUID()}.jpg`;
         await supabase.storage.from("payment-screenshots").upload(storagePath, imageBytes, {
           contentType: "image/jpeg", upsert: true,
         });
-        // Store path reference (not public URL since bucket is private)
         const screenshotRef = `payment-screenshots/${storagePath}`;
 
         // Create payment request
-        await supabase.from("payment_requests").insert({
+        const { data: paymentReq } = await supabase.from("payment_requests").insert({
           user_id: profile.user_id || null,
           telegram_id: telegramId,
           profile_id: profile.id,
@@ -308,7 +424,7 @@ serve(async (req) => {
           amount,
           screenshot_url: screenshotRef,
           status: "pending",
-        });
+        }).select("id").single();
 
         // Clear bot state
         await supabase.from("profiles").update({ bot_state: null }).eq("id", profile.id);
@@ -320,10 +436,42 @@ serve(async (req) => {
           `⏳ Admin tekshirib, kreditlarni qo'shadi.\n` +
           `Odatda 5-30 daqiqa ichida tasdiqlanadi.`
         );
+
+        // Send notification to admin with screenshot and approve/reject buttons
+        if (adminChatId && paymentReq?.id) {
+          const userName = profile.first_name || profile.telegram_username
+            ? `${profile.first_name || ""} ${profile.telegram_username ? "@" + profile.telegram_username : ""}`.trim()
+            : `TG:${telegramId}`;
+
+          const caption =
+            `🔔 <b>Yangi to'lov so'rovi!</b>\n\n` +
+            `👤 ${userName}\n` +
+            `📦 ${pkg?.name || credits + " ta rasm"}\n` +
+            `💰 ${Number(amount).toLocaleString()} so'm\n` +
+            `🎯 ${credits} kredit\n\n` +
+            `⏳ Tasdiqlash kutilmoqda`;
+
+          // Use the Telegram file_id directly to send the photo to admin (no need for signed URL)
+          try {
+            await sendPhoto(botToken, adminChatId, photoFile.file_id, caption, {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: "✅ Tasdiqlash", callback_data: `approve:${paymentReq.id}` },
+                    { text: "❌ Rad etish", callback_data: `reject:${paymentReq.id}` },
+                  ]
+                ]
+              }
+            });
+          } catch (notifErr) {
+            console.error("Admin notification error:", notifErr);
+          }
+        }
+
         return new Response("OK");
       }
 
-      // Normal photo — redirect to Web App for generation
+      // Normal photo — redirect to Web App
       await sendMessage(botToken, chatId,
         `📱 Rasm yaratish uchun <b>Web App</b>ni oching!\n\n` +
         `💡 Quyidagi tugmani bosing va rasmni Web App ichida yuklang.`,

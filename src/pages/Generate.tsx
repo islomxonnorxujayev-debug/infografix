@@ -125,26 +125,57 @@ const Generate = () => {
       toast.loading(t("gen.downloading") || "Yuklab olinmoqda...", { id: "dl" });
 
       const match = resultUrl.match(/\/product-images\/(.+)$/);
-      let directUrl = resultUrl;
+      let storagePath = "";
 
       if (match) {
-        const cleanPath = match[1].split("?")[0];
+        storagePath = match[1].split("?")[0];
+      }
+
+      // For both Telegram and Web: use download-proxy to get blob
+      if (storagePath) {
+        try {
+          const { data: proxyData, error: proxyError } = await supabase.functions.invoke("download-proxy", {
+            body: { storagePath },
+          });
+
+          if (!proxyError && proxyData) {
+            // proxyData is already a blob from the edge function
+            const blob = proxyData instanceof Blob ? proxyData : new Blob([proxyData]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `infografix-${generationId || Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            toast.success(t("gen.downloaded"), { id: "dl" });
+            return;
+          }
+        } catch (proxyErr) {
+          console.warn("Proxy download failed, falling back:", proxyErr);
+        }
+      }
+
+      // Fallback: direct signed URL download
+      let directUrl = resultUrl;
+      if (storagePath) {
         const { data: signedData } = await supabase.storage
           .from("product-images")
-          .createSignedUrl(cleanPath, 300, { download: true });
+          .createSignedUrl(storagePath, 300, { download: true });
         if (signedData?.signedUrl) {
           directUrl = signedData.signedUrl;
         }
       }
 
-      // Telegram: open in system browser
+      // Telegram fallback: open in system browser
       if (window.Telegram?.WebApp?.openLink) {
         window.Telegram.WebApp.openLink(directUrl);
         toast.success("Rasm brauzerda ochildi. Bosib turing va saqlang.", { id: "dl" });
         return;
       }
 
-      // Web: fetch blob and trigger download
+      // Web fallback
       try {
         const response = await fetch(directUrl);
         if (!response.ok) throw new Error("fetch failed");

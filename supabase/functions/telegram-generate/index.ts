@@ -164,14 +164,14 @@ serve(async (req) => {
       : "Product-only. Dynamic angles, artistic shadows, complementary props.";
 
     const prompt = `Elite e-commerce product photographer. Create ONE scroll-stopping product image.
-OUTPUT: 1080×1440px (3:4), high-res, no artifacts.
+CRITICAL OUTPUT SIZE: The final image MUST be exactly 1080 pixels wide × 1440 pixels tall (3:4 aspect ratio). This is mandatory — do NOT use any other resolution. Width=1080, Height=1440.
 PRODUCT ANALYSIS: Study uploaded image — category, dimensions, features, colors, materials.
 SCENE: ${sceneMap[sceneType] || sceneMap.studio}
 MODEL: ${modelInstruction}
 SCALE: Product at CORRECT real-world size. 25-40% of frame.
 LIGHTING: 3-point professional. Cinematic color grading. True colors. Subtle vignette.
 DESIGN (${langName}): 1-2 elegant text overlays in ${langName}. Modern clean typography.
-QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition.`;
+QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition. Remember: output MUST be 1080×1440 pixels.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
