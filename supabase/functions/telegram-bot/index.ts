@@ -198,12 +198,21 @@ serve(async (req) => {
           const newCredits = profile.credits_remaining + payReq.credits;
           await supabase.from("profiles").update({ credits_remaining: newCredits, updated_at: new Date().toISOString() }).eq("id", profile.id);
 
-          // Update admin message
+          // Update admin message (try editMessageCaption for photo, editMessageText for text)
           if (cbChatId && cbMessageId) {
+            const statusText = `\n\n✅ <b>TASDIQLANDI</b>\n💰 ${payReq.credits} kredit qo'shildi\n📊 Yangi balans: ${newCredits}`;
             const oldCaption = cb.message?.caption || "";
-            await editMessageCaption(botToken, cbChatId, cbMessageId,
-              oldCaption + `\n\n✅ <b>TASDIQLANDI</b>\n💰 ${payReq.credits} kredit qo'shildi\n📊 Yangi balans: ${newCredits}`
-            );
+            const oldText = cb.message?.text || "";
+            
+            if (oldCaption) {
+              await editMessageCaption(botToken, cbChatId, cbMessageId, oldCaption + statusText);
+            } else if (oldText) {
+              await fetch(`${TELEGRAM_API}${botToken}/editMessageText`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: cbChatId, message_id: cbMessageId, text: oldText + statusText, parse_mode: "HTML" }),
+              });
+            }
           }
 
           // Notify user
