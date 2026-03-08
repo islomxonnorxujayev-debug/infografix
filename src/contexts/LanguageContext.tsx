@@ -435,6 +435,12 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.step2Desc": "AI творит магию",
     "hero.step3": "Скачать",
     "hero.step3Desc": "Получите результат",
+    "hero.before": "До",
+    "hero.after": "После",
+    "hero.showcase1": "Кроссовки",
+    "hero.showcase2": "Косметика",
+    "hero.showcase3": "Часы",
+    "hero.showcaseDesc": "Реальные результаты AI — профессиональные фото для любого товара",
 
     // Landing - Features
     "feat.label": "Возможности",
