@@ -238,10 +238,19 @@ serve(async (req) => {
           await supabase.from("payment_requests").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", paymentId);
 
           if (cbChatId && cbMessageId) {
+            const statusText = `\n\n❌ <b>RAD ETILDI</b>`;
             const oldCaption = cb.message?.caption || "";
-            await editMessageCaption(botToken, cbChatId, cbMessageId,
-              oldCaption + `\n\n❌ <b>RAD ETILDI</b>`
-            );
+            const oldText = cb.message?.text || "";
+            
+            if (oldCaption) {
+              await editMessageCaption(botToken, cbChatId, cbMessageId, oldCaption + statusText);
+            } else if (oldText) {
+              await fetch(`${TELEGRAM_API}${botToken}/editMessageText`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ chat_id: cbChatId, message_id: cbMessageId, text: oldText + statusText, parse_mode: "HTML" }),
+              });
+            }
           }
 
           // Find profile to notify user
