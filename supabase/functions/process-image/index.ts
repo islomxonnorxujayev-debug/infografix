@@ -76,37 +76,37 @@ serve(async (req) => {
     }
 
     const withModel = modelType === "with-model";
-    const langName = language === "ru" ? "Russian" : "Uzbek";
+    const langLabel = language === "ru" ? "rus tilida" : "o'zbek tilida";
 
     const sceneMap: Record<string, string> = {
-      nature: `Outdoor nature: golden-hour sunlit garden/forest/beach. Warm tones, bokeh background, volumetric light.`,
-      lifestyle: `Lifestyle: modern apartment/cafe/kitchen. Warm ambient light, rich textures (marble, wood, linen).`,
-      studio: `Studio: seamless gradient backdrop, 3-point lighting (45° key, soft fill, rim light), reflective surface below.`,
-      minimalist: `Minimalist: solid/gradient backdrop, ample negative space, 1-2 complementary props. Soft diffused light.`,
-      infographic: `Marketplace infographic card. White/light background. Product centered. 3-4 feature callouts with icons + short ${langName} labels. Quality badges. Clean typography hierarchy. ALL text in ${langName}.`,
+      nature: `Tashqi tabiat: oltin soat yoritishi, bog'/o'rmon/qirg'oq. Issiq ranglar, bokeh orqa fon, hajmli yorug'lik.`,
+      lifestyle: `Turmush tarzi: zamonaviy kvartira/kafe/oshxona. Issiq yoritish, boy teksturalar (marmar, yog'och, zig'ir).`,
+      studio: `Studiya: tekis gradient fon, 3 nuqtali yoritish (45° asosiy, yumshoq to'ldirish, kontur yoritish), pastda aks ettiruvchi sirt.`,
+      minimalist: `Minimalist: bir rangli/gradient fon, keng bo'sh joy, 1-2 ta mos prop. Yumshoq tarqalgan yorug'lik.`,
+      infographic: `Marketplace infografika kartasi. Oq/yorug' fon. Mahsulot markazda. 3-4 ta xususiyat belgilari ikonkalar bilan. Sifat belgilari. Barcha yozuvlar faqat ${langLabel}.`,
     };
 
     const modelInstruction = withModel
-      ? `Include photorealistic model naturally using/wearing the product. Model enhances story, product stays focal. Correct anatomy and proportions.`
-      : `Product-only. Dynamic angles, artistic shadows, complementary props for context.`;
+      ? `Fotorealistik modelni mahsulotdan foydalanayotgan holda tabiiy qo'shing. Model hikoyani boyitadi, mahsulot asosiy fokusda qoladi.`
+      : `Faqat mahsulot. Dinamik burchaklar, badiiy soyalar, kontekst uchun mos proplar.`;
 
-    const prompt = `Elite e-commerce product photographer. Create ONE scroll-stopping product image.
+    const prompt = `Sen professional e-commerce mahsulot fotografi. Bitta ajoyib mahsulot rasmi yarat.
 
-CRITICAL OUTPUT SIZE: The final image MUST be exactly 1080 pixels wide × 1440 pixels tall (3:4 aspect ratio). This is mandatory — do NOT use any other resolution. Width=1080, Height=1440.
+MUHIM O'LCHAM: Rasm aniq 1080x1440 piksel (3:4 nisbat) bo'lishi SHART.
 
-PRODUCT ANALYSIS: Study the uploaded image — category, real-world dimensions, key features, colors, materials.
+MAHSULOT TAHLILI: Yuklangan rasmni chuqur o'rganing — kategoriyasi, haqiqiy o'lchamlari, asosiy xususiyatlari, ranglari, materiali, teksturasi, brend elementlari. Har bir detalga e'tibor ber.
 
-SCENE: ${sceneMap[sceneType] || sceneMap.studio}
+SAHNA: ${sceneMap[sceneType] || sceneMap.studio}
 
 MODEL: ${modelInstruction}
 
-SCALE (CRITICAL): Product at CORRECT real-world size. Occupies 25-40% of frame. Small items (ring, lipstick) stay small — use tighter framing. Large items (sofa, coat) fill naturally. Use props/environment as scale anchors.
+MASSHTAB (MUHIM): Mahsulot HAQIQIY o'lchamda. Kadrning 25-40% ini egallaydi. Kichik buyumlar (uzuk, pomada) — yaqinroq kadr. Katta buyumlar (divan, palto) — tabiiy to'ldirish. Proplar masshtab uchun yo'naltiruvchi.
 
-LIGHTING: 3-point professional. Cinematic color grading. True-to-original product colors. Subtle vignette.
+YORITISH: 3 nuqtali professional yoritish. Kinematografik rang sozlash. Mahsulotning asl ranglari saqlanadi. Engil vinyet.
 
-DESIGN (${langName}): 1-2 elegant text overlays in ${langName} — product category or tagline. Subtle quality badge. Modern clean typography.
+DIZAYN: 1-2 nafis matnli qoplama faqat ${langLabel} — mahsulot kategoriyasi yoki qisqa shior. Zamonaviy toza tipografiya. HECH QANDAY inglizcha so'z ishlatma.
 
-QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time. Remember: output MUST be 1080×1440 pixels.`;
+SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.`;
 
     console.log("Gen:", generationId, modelType, sceneType, language);
 
@@ -117,7 +117,7 @@ QUALITY: $5000 photoshoot level. Not AI-looking. Unique composition each time. R
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: "google/gemini-2.5-flash-image",
         messages: [
           {
             role: "user",
