@@ -129,7 +129,7 @@ const Generate = () => {
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
         body: {
-          imageUrl: urlData.publicUrl,
+          imageUrl: signedData.signedUrl,
           modelType: selectedModel,
           sceneType: selectedScene,
           generationId: genData.id,
