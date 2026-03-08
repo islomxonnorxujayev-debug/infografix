@@ -107,7 +107,15 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Timer for processing
+  // Showcase auto-rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowcaseIndex((prev) => (prev + 1) % showcaseItems.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+
   useEffect(() => {
     if (!processing) {
       setElapsedSeconds(0);
