@@ -179,6 +179,12 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.step2Desc": "AI sehrini ko'ring",
     "hero.step3": "Yuklab olish",
     "hero.step3Desc": "Tayyor rasmni oling",
+    "hero.before": "Oldin",
+    "hero.after": "Keyin",
+    "hero.showcase1": "Krossovka",
+    "hero.showcase2": "Kosmetika",
+    "hero.showcase3": "Soat",
+    "hero.showcaseDesc": "Haqiqiy AI natijalari — har qanday mahsulot uchun professional fotosurat",
 
     // Landing - Features
     "feat.label": "Imkoniyatlar",
