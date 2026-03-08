@@ -474,6 +474,7 @@ const Dashboard = () => {
   const handleReset = () => {
     setUploadedFile(null);
     setResultUrl(null);
+    setResultWatermarked(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
