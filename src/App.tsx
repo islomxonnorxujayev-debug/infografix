@@ -25,7 +25,8 @@ const App = () => (
         <LanguageProvider>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/login" element={<Login />} />
               <Route path="/generate" element={<Generate />} />
               <Route path="/balance" element={<Balance />} />
