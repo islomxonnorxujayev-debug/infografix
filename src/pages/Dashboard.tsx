@@ -1,4 +1,4 @@
-import { Sparkles, Shield, CreditCard, ImageIcon, Clock, Upload, Loader2, Download, Settings, ChevronDown, LogOut } from "lucide-react";
+import { Sparkles, Shield, CreditCard, ImageIcon, Clock, Upload, Loader2, Download, Settings, ChevronDown, LogOut, Wand2 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,12 @@ interface Generation {
   created_at: string;
 }
 
+const showcaseItems = [
+  { before: "/images/before-1.jpg", after: "/images/after-1.jpg" },
+  { before: "/images/before-2.jpg", after: "/images/after-2.jpg" },
+  { before: "/images/before-3.jpg", after: "/images/after-3.jpg" },
+];
+
 const Dashboard = () => {
   const { t, lang } = useLanguage();
   const { user, loading: authLoading, signIn, signOut } = useAuth();
@@ -61,6 +67,7 @@ const Dashboard = () => {
   const [credits, setCredits] = useState<number>(0);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showcaseIndex, setShowcaseIndex] = useState(0);
 
   // Generate state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -100,7 +107,15 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Timer for processing
+  // Showcase auto-rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowcaseIndex((prev) => (prev + 1) % showcaseItems.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+
   useEffect(() => {
     if (!processing) {
       setElapsedSeconds(0);
@@ -611,27 +626,68 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="px-4 space-y-4">
+          <div className="px-4 space-y-3">
+            {/* Compact Before/After Showcase */}
+            {!uploadedFile && (
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex">
+                  <div className="w-1/2 relative border-r border-border">
+                    <img
+                      key={`before-${showcaseIndex}`}
+                      src={showcaseItems[showcaseIndex].before}
+                      alt="Before"
+                      className="w-full aspect-square object-cover"
+                    />
+                    <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-destructive/90 text-destructive-foreground text-[10px] font-semibold">
+                      {t("hero.before")}
+                    </span>
+                  </div>
+                  <div className="w-1/2 relative">
+                    <img
+                      key={`after-${showcaseIndex}`}
+                      src={showcaseItems[showcaseIndex].after}
+                      alt="After"
+                      className="w-full aspect-square object-cover"
+                    />
+                    <span className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-full bg-accent/90 text-accent-foreground text-[10px] font-semibold">
+                      {t("hero.after")}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 py-1.5">
+                  {showcaseItems.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setShowcaseIndex(i)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        i === showcaseIndex ? "bg-primary w-4" : "bg-muted-foreground/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="text-center">
-              <h2 className="font-display text-xl font-bold text-foreground">{t("dash.uploadTitle")}</h2>
-              <p className="text-sm text-muted-foreground mt-1">{t("dash.uploadDesc")}</p>
+              <h2 className="font-display text-lg font-bold text-foreground">{t("dash.uploadTitle")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("dash.uploadDesc")}</p>
             </div>
 
             <label className="block cursor-pointer">
-              <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
+              <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${
                 uploadedFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/30 bg-card"
               }`}>
                 {uploadedFile && previewUrl ? (
                   <div>
-                    <img src={previewUrl} alt="Preview" className="max-h-40 mx-auto rounded-lg mb-3 object-contain" />
-                    <p className="font-medium text-foreground text-sm">{uploadedFile.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                    <img src={previewUrl} alt="Preview" className="max-h-28 mx-auto rounded-lg mb-2 object-contain" />
+                    <p className="font-medium text-foreground text-xs">{uploadedFile.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{(uploadedFile.size / 1024 / 1024).toFixed(1)} MB</p>
                   </div>
                 ) : (
                   <div>
-                    <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                     <p className="font-medium text-foreground text-sm">{t("dash.uploadBtn")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t("dash.uploadLabel")}</p>
+                    <p className="text-xs text-muted-foreground">{t("dash.uploadLabel")}</p>
                   </div>
                 )}
               </div>

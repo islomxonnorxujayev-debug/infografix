@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import AdminRoute from "@/components/AdminRoute";
-import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
@@ -25,8 +24,7 @@ const App = () => (
         <LanguageProvider>
           <AuthProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/" element={<Dashboard />} />
               <Route path="/login" element={<Login />} />
               <Route path="/generate" element={<Generate />} />
               <Route path="/balance" element={<Balance />} />
