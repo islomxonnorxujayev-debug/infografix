@@ -263,6 +263,26 @@ WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRA
       credits_remaining: profile.credits_remaining - 1
     }).eq("id", profile.id);
 
+    // Fire-and-forget: post before/after to Telegram channel
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      if (origSignedData?.signedUrl && resultSignedData?.signedUrl) {
+        fetch(`${supabaseUrl}/functions/v1/post-to-channel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey2}` },
+          body: JSON.stringify({
+            originalUrl: origSignedData.signedUrl,
+            resultUrl: resultSignedData.signedUrl,
+            sceneType,
+            language: langCode,
+          }),
+        }).catch(e => console.error("Channel post fire-and-forget error:", e));
+      }
+    } catch (e) {
+      console.error("Channel post setup error:", e);
+    }
+
     return new Response(JSON.stringify({
       resultUrl: resultSignedData?.signedUrl || "",
       originalUrl: origSignedData?.signedUrl || "",

@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.submit-payment]
 verify_jwt = false
+
+[functions.post-to-channel]
+verify_jwt = false
