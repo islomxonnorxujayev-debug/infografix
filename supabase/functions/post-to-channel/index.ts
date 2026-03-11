@@ -3,7 +3,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const TELEGRAM_API = "https://api.telegram.org/bot";
 const CHANNEL_ID = "-1003694153153";
 const BOT_USERNAME = "infografixbot";
-const WEB_APP_URL = "https://infografix.lovable.app";
 const CHANNEL_URL = "https://t.me/infografix_ai";
 
 const corsHeaders = {
@@ -16,10 +15,8 @@ serve(async (req) => {
 
   try {
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!botToken || !lovableApiKey) {
-      return new Response(JSON.stringify({ error: "Not configured" }), { status: 500 });
+    if (!botToken) {
+      return new Response(JSON.stringify({ error: "Bot token not configured" }), { status: 500 });
     }
 
     const { originalUrl, resultUrl, sceneType, language } = await req.json();
@@ -28,106 +25,83 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing URLs" }), { status: 400 });
     }
 
-    // Use AI to combine before/after into a single comparison image
-    const combinePrompt = `Create a professional before/after product photo comparison image.
-
-LAYOUT:
-- Split the image horizontally into two equal halves side by side
-- LEFT side: the ORIGINAL uploaded photo (as-is, unedited) with a small "OLDIN ❌" label at the top-left corner
-- RIGHT side: the AI-ENHANCED professional photo with a small "KEYIN ✅" label at the top-right corner
-- Add a thin vertical divider line between the two halves
-- Add a subtle gradient banner at the bottom with text: "INFOGRAFIX AI — Mahsulot rasmlarini professional darajada tayyorlang"
-
-STYLE:
-- Clean, modern comparison layout
-- The labels should be semi-transparent overlays, not covering the product
-- Bottom banner should be elegant dark gradient with white text
-- Final image should be 1080x1080 pixels (square, perfect for Telegram channel)
-- Make it look like a premium before/after showcase`;
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
+    // Step 1: Send before/after as media group (2 photos)
+    const mediaGroup = [
+      {
+        type: "photo",
+        media: originalUrl,
+        caption: `❌ <b>OLDIN</b> — oddiy telefon surati`,
+        parse_mode: "HTML",
       },
+      {
+        type: "photo",
+        media: resultUrl,
+        caption: `✅ <b>KEYIN</b> — INFOGRAFIX AI natijasi\n\n` +
+          `📸 Oddiy rasmni professional e-commerce fotoga aylantirdik!\n\n` +
+          `✨ <b>Imkoniyatlar:</b>\n` +
+          `• 🏪 Marketplace infografika\n` +
+          `• 📷 Professional studiya surati\n` +
+          `• 🌿 Tabiat va lifestyle sahnalar\n` +
+          `• 🧑‍🎨 Model bilan kompozitsiya\n\n` +
+          `🎯 <b>Natija:</b> Sotuvlar 3-5 baravar oshadi!\n\n` +
+          `💡 <i>1 ta bepul rasm — hoziroq sinab ko'ring!</i>`,
+        parse_mode: "HTML",
+      },
+    ];
+
+    const mediaRes = await fetch(`${TELEGRAM_API}${botToken}/sendMediaGroup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: combinePrompt },
-            { type: "image_url", image_url: { url: originalUrl } },
-            { type: "image_url", image_url: { url: resultUrl } },
-          ],
-        }],
-        modalities: ["image", "text"],
+        chat_id: CHANNEL_ID,
+        media: mediaGroup,
       }),
     });
 
-    if (!aiResponse.ok) {
-      console.error("AI combine error:", aiResponse.status, await aiResponse.text());
-      // Fallback: send result image only
-      await sendResultOnly(botToken, resultUrl);
-      return new Response(JSON.stringify({ success: true, fallback: true }));
+    const mediaResult = await mediaRes.json();
+
+    if (!mediaResult.ok) {
+      console.error("Media group send failed:", JSON.stringify(mediaResult));
+      return new Response(JSON.stringify({ error: "Failed to send media group", details: mediaResult }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const aiData = await aiResponse.json();
-    const combinedBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Step 2: Send inline buttons as a separate message (reply to the media group)
+    const lastMessageId = mediaResult.result?.[mediaResult.result.length - 1]?.message_id;
 
-    if (!combinedBase64) {
-      console.error("No combined image from AI");
-      await sendResultOnly(botToken, resultUrl);
-      return new Response(JSON.stringify({ success: true, fallback: true }));
-    }
+    const buttonText =
+      `👆 <b>Yuqoridagi natijani ko'rdingizmi?</b>\n\n` +
+      `🤖 INFOGRAFIX AI — mahsulot rasmlaringizni professional darajaga olib chiqadi.\n\n` +
+      `⬇️ Boshlash uchun quyidagi tugmani bosing:`;
 
-    // Send combined image to channel
-    const base64Data = combinedBase64.replace(/^data:image\/\w+;base64,/, "");
-    const rawBinary = atob(base64Data);
-    const imageBytes = new Uint8Array(rawBinary.length);
-    for (let i = 0; i < rawBinary.length; i++) {
-      imageBytes[i] = rawBinary.charCodeAt(i);
-    }
-
-    const caption = `🎨 <b>INFOGRAFIX AI natijasi</b>\n\n` +
-      `📸 Oddiy rasmni professional e-commerce fotoga aylantirdik!\n\n` +
-      `✨ <b>Imkoniyatlar:</b>\n` +
-      `• 🏪 Marketplace infografika\n` +
-      `• 📷 Professional studiya\n` +
-      `• 🌿 Tabiat va lifestyle sahnalar\n` +
-      `• 🧑‍🎨 Model bilan kompozitsiya\n\n` +
-      `💡 <i>1 ta bepul rasm — hoziroq sinab ko'ring!</i>`;
-
-    // Upload as multipart form data
-    const formData = new FormData();
-    formData.append("chat_id", CHANNEL_ID);
-    formData.append("photo", new Blob([imageBytes], { type: "image/png" }), "comparison.png");
-    formData.append("caption", caption);
-    formData.append("parse_mode", "HTML");
-    formData.append("reply_markup", JSON.stringify({
-      inline_keyboard: [
-        [
-          { text: "🆓 Bepul sinab ko'rish", url: `https://t.me/${BOT_USERNAME}?start=channel` }
-        ],
-        [
-          { text: "👥 Do'stlarga ulashish", url: `https://t.me/share/url?url=${encodeURIComponent(CHANNEL_URL)}&text=${encodeURIComponent("🎨 Mahsulot rasmlarini AI bilan professional qiling! Bepul sinab ko'ring 👇")}` }
-        ],
-        [
-          { text: "📱 Web App ochish", web_app: { url: WEB_APP_URL } }
-        ]
-      ]
-    }));
-
-    const sendRes = await fetch(`${TELEGRAM_API}${botToken}/sendPhoto`, {
+    const buttonRes = await fetch(`${TELEGRAM_API}${botToken}/sendMessage`, {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: CHANNEL_ID,
+        text: buttonText,
+        parse_mode: "HTML",
+        reply_to_message_id: lastMessageId,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "🆓 Bepul sinab ko'rish", url: `https://t.me/${BOT_USERNAME}?start=channel` },
+            ],
+            [
+              {
+                text: "👥 Do'stlarga ulashish",
+                url: `https://t.me/share/url?url=${encodeURIComponent(CHANNEL_URL)}&text=${encodeURIComponent("🎨 Mahsulot rasmlarini AI bilan professional qiling! Bepul sinab ko'ring 👇")}`,
+              },
+            ],
+          ],
+        },
+      }),
     });
 
-    const sendResult = await sendRes.json();
-    if (!sendResult.ok) {
-      console.error("Channel send failed:", JSON.stringify(sendResult));
-      // Try fallback with URL
-      await sendResultOnly(botToken, resultUrl);
+    const buttonResult = await buttonRes.json();
+    if (!buttonResult.ok) {
+      console.error("Button message failed:", JSON.stringify(buttonResult));
     }
 
     return new Response(JSON.stringify({ success: true }), {
@@ -140,30 +114,3 @@ STYLE:
     });
   }
 });
-
-async function sendResultOnly(botToken: string, resultUrl: string) {
-  const caption = `🎨 <b>INFOGRAFIX AI natijasi</b>\n\n` +
-    `📸 Professional e-commerce foto — AI yordamida!\n\n` +
-    `💡 <i>1 ta bepul rasm — hoziroq sinab ko'ring!</i>`;
-
-  try {
-    await fetch(`${TELEGRAM_API}${botToken}/sendPhoto`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHANNEL_ID,
-        photo: resultUrl,
-        caption,
-        parse_mode: "HTML",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "🆓 Bepul sinab ko'rish", url: `https://t.me/${BOT_USERNAME}?start=channel` }],
-            [{ text: "👥 Do'stlarga ulashish", url: `https://t.me/share/url?url=${encodeURIComponent(CHANNEL_URL)}&text=${encodeURIComponent("🎨 Mahsulot rasmlarini AI bilan professional qiling!")}` }],
-          ]
-        }
-      }),
-    });
-  } catch (e) {
-    console.error("Fallback send failed:", e);
-  }
-}
