@@ -214,7 +214,8 @@ const Generate = () => {
     setShowComplete(false);
   };
 
-  const canProceedStep1 = selectedModel !== null && selectedScene !== null;
+  const isFreeCreate = selectedModel === "free-create";
+  const canProceedStep1 = selectedModel !== null && (isFreeCreate || selectedScene !== null);
 
   const selectedSceneLabel = sceneOptions.find(s => s.id === selectedScene)?.labelKey;
 
