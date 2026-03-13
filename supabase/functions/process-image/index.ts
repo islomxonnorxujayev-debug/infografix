@@ -99,40 +99,59 @@ serve(async (req) => {
     const langLabel = language === "ru" ? "rus tilida" : "o'zbek tilida";
 
     const sceneMap: Record<string, string> = {
-      nature: `Tashqi tabiat: oltin soat yoritishi, bog'/o'rmon/qirg'oq. Issiq ranglar, bokeh orqa fon, hajmli yorug'lik.`,
-      lifestyle: `Turmush tarzi: zamonaviy kvartira/kafe/oshxona. Issiq yoritish, boy teksturalar (marmar, yog'och, zig'ir).`,
-      studio: `Studiya: tekis gradient fon, 3 nuqtali yoritish (45° asosiy, yumshoq to'ldirish, kontur yoritish), pastda aks ettiruvchi sirt.`,
-      minimalist: `Minimalist: bir rangli/gradient fon, keng bo'sh joy, 1-2 ta mos prop. Yumshoq tarqalgan yorug'lik.`,
-      infographic: `Marketplace infografika kartasi. Oq/yorug' fon. Mahsulot markazda. 3-4 ta xususiyat belgilari ikonkalar bilan. Sifat belgilari. Barcha yozuvlar faqat ${langLabel}.`,
+      nature: `Tashqi tabiat sahnasi. Oltin soat (golden hour) tabiiy yoritishi. Mahsulot yashil o'simliklar, gullar yoki tabiiy toshlar orasida joylashgan. Orqa fon yumshoq bokeh effektida. Issiq ranglar palitrasi.`,
+      lifestyle: `Turmush tarzi sahnasi. Zamonaviy interer — marmar stol, yog'och sirt yoki zig'ir matoli fon. Tabiiy deraza yoritishi. Mahsulot kundalik hayotda ishlatilayotgandek ko'rinishi kerak. 1-2 ta mos aksessuar (kofe stakan, kitob, gul).`,
+      studio: `Professional studiya. Silliq gradient fon (oqdan kulrang yoki pastel rangga). 3 nuqtali yoritish sxemasi: 45° burchakdagi asosiy yorug'lik, yumshoq to'ldiruvchi yorug'lik, orqa kontur yorug'lik. Pastda aks ettiruvchi sirt.`,
+      minimalist: `Minimalist sahna. Bir xil rangli toza fon (oq, och kulrang yoki pastel). Mahsulot markazda, atrofda keng bo'sh joy. 1 ta kichik dekorativ element. Yumshoq diffuz yorug'lik, soyalar deyarli yo'q.`,
+      infographic: `Marketplace infografika kartasi. FAQAT oq fon. Mahsulot markazda aniq ko'rinadi. Mahsulot atrofida 3-4 ta xususiyat belgilari — har biri ikonka + qisqa matn (faqat ${langLabel}). O'lcham ko'rsatkichlari. Sifat belgilari. Barcha yozuvlar FAQAT ${langLabel}, HECH QANDAY inglizcha so'z bo'lmasin.`,
     };
 
     const modelInstruction = withModel
-      ? `Fotorealistik modelni mahsulotdan foydalanayotgan holda tabiiy qo'shing. Model hikoyani boyitadi, mahsulot asosiy fokusda qoladi.`
-      : `Faqat mahsulot. Dinamik burchaklar, badiiy soyalar, kontekst uchun mos proplar.`;
+      ? `Fotorealistik inson modelini qo'shing. Model mahsulotni tabiiy ravishda ishlatayotgan yoki ushlab turgan holatda. Model tana proporsiyalari anatomik jihatdan to'g'ri bo'lsin. Yuz ifodasi tabiiy. Mahsulot asosiy fokusda qoladi, model fon hikoyasini boyitadi.`
+      : `Faqat mahsulot, inson yo'q. Mahsulotni eng foydali burchakdan ko'rsating. Perspektiva va soyalar orqali hajm his etilsin. Kontekst uchun 1-2 kichik prop qo'shing.`;
 
-    const prompt = `Sen professional e-commerce mahsulot fotografi. Bitta ajoyib mahsulot rasmi yarat.
+    const prompt = `Sen dunyodagi eng yaxshi e-commerce mahsulot fotografi. Bitta mukammal mahsulot rasmi yarat.
 
-MUHIM O'LCHAM: Rasm aniq 1080x1440 piksel (3:4 nisbat) bo'lishi SHART.
+RASM O'LCHAMI (MAJBURIY): Yakuniy rasm ANIQ 1080x1440 piksel (3:4 vertikal nisbat) bo'lishi SHART. Boshqa hech qanday o'lcham qabul qilinmaydi.
 
-MAHSULOT TAHLILI: Yuklangan rasmni chuqur o'rganing — kategoriyasi, haqiqiy o'lchamlari, asosiy xususiyatlari, ranglari, materiali, teksturasi, brend elementlari. Har bir detalga e'tibor ber.
+MAHSULOT TAHLILI (MUHIM):
+- Yuklangan rasmni SINCHIKLAB o'rgana: mahsulot turi, kategoriyasi, materiali, rangi, teksturasi, shakli, brend logosi
+- Mahsulotning HAQIQIY FIZIK O'LCHAMI ni aniqlash: telefon (~15cm), soat (~4cm), sumka (~30cm), kiyim, oyoq kiyim, kosmetika va h.k.
+- Mahsulotni REAL proporsiyada tasvirla — kichik buyumni katta qilma, katta buyumni kichiklashtirma
+- Mahsulotning barcha detallarini (tugma, chok, logo, yozuv) ANIQ va O'QILISHI MUMKIN qilib ko'rsat
 
-SAHNA: ${sceneMap[sceneType] || sceneMap.studio}
+SAHNA SOZLAMASI: ${sceneMap[sceneType] || sceneMap.studio}
 
-MODEL: ${modelInstruction}
+MODEL KO'RSATMASI: ${modelInstruction}
 
-MASSHTAB (MUHIM): Mahsulot HAQIQIY o'lchamda. Kadrning 25-40% ini egallaydi. Kichik buyumlar (uzuk, pomada) — yaqinroq kadr. Katta buyumlar (divan, palto) — tabiiy to'ldirish. Proplar masshtab uchun yo'naltiruvchi.
+MASSHTAB QOIDALARI (JUDA MUHIM):
+- Kichik buyumlar (uzuk, quloq halqa, labga bo'yoq, flash-karta): YAQIN KADR, mahsulot kadrning 50-70% ini egallaydi
+- O'rta buyumlar (telefon, soat, hamyon, parfyum): mahsulot kadrning 35-50% ini egallaydi
+- Katta buyumlar (sumka, oyoq kiyim, kiyim): mahsulot kadrning 40-60% ini egallaydi
+- Juda katta buyumlar (mebel, jihoz): mahsulot kadrning 60-80% ini egallaydi
+- Masshtab uchun tanish proplar (qalam, tanga, qo'l) foydalanish mumkin
 
-YORITISH: 3 nuqtali professional yoritish. Kinematografik rang sozlash. Mahsulotning asl ranglari saqlanadi. Engil vinyet.
+YORITISH VA RANG:
+- 3 nuqtali professional yoritish sxemasi
+- Mahsulotning ASLIY ranglari 100% saqlansin — rangni o'zgartirma
+- Kinematografik rang sozlash (color grading)
+- Yumshoq soyalar orqali hajm va chuqurlik
+- Engil vinyet effekti
 
-DIZAYN: 1-2 nafis matnli qoplama faqat ${langLabel} — mahsulot kategoriyasi yoki qisqa shior. Zamonaviy toza tipografiya. HECH QANDAY inglizcha so'z ishlatma.
+MATN VA TIPOGRAFIYA (FAQAT INFOGRAFIKA UCHUN):
+- Barcha matnlar FAQAT ${langLabel} bo'lsin
+- HECH QANDAY inglizcha so'z, harf yoki belgi ishlatma
+- Matn imloviy va grammatik jihatdan 100% TO'G'RI bo'lsin
+- Zamonaviy, toza shrift. O'qilishi oson
+- Matn mahsulotni yopmaydi
 
-IMLO: Infografikadagi barcha matnlar imlo va grammatika jihatdan 100% to'g'ri bo'lsin. Hech qanday xato harf yoki noto'g'ri yozuv bo'lmasin.
+SIFAT TALABLARI:
+- Professional fotostudiya darajasidagi natija
+- Fotorealistik — sun'iy yoki kompyuterda yaratilgandek ko'rinmasin
+- Piksellar aniq, detalar o'tkir
+- Rang va kontrast balansi mukammal${shouldApplyWatermark ? `
 
-FORMAT (QAT'IY): Yakuniy rasm faqat 1080x1440 piksel bo'lsin. Boshqa o'lcham yaratma.
-
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Har safar noyob kompozitsiya.${shouldApplyWatermark ? `
-
-WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
+WATERMARK (MAJBURIY): Rasmning MARKAZIGA katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab aniq ko'rinsin.` : ""}`;
 
     console.log("Gen:", generationId, modelType, sceneType, language);
 
