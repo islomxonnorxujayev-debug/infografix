@@ -156,59 +156,88 @@ serve(async (req) => {
 
     const sceneType = scene_type || "studio";
     const modelType = model_type || "without-model";
-
-    await supabase.from("generations").insert({
-      id: genId,
-      user_id: profile.user_id || null,
-      telegram_id,
-      original_url: originalPath,
-      marketplace: "Web App / Studio",
-      style_preset: sceneType,
-      enhancements: { model: modelType, scene: sceneType, language: language || "uz", source: "webapp" },
-      status: "processing",
-    });
+    const isFreeCreate = modelType === "free-create";
 
     const langCode = language || "uz";
     const langLabel = langCode === "ru" ? "rus tilida" : "o'zbek tilida";
+    const langFull = langCode === "ru" ? "russkiy" : "o'zbek";
 
     const sceneMap: Record<string, string> = {
-      nature: `Tashqi tabiat sahnasi. Oltin soat (golden hour) tabiiy yoritishi. Mahsulot yashil o'simliklar, gullar yoki tabiiy toshlar orasida joylashgan. Orqa fon yumshoq bokeh effektida. Issiq ranglar palitrasi.`,
-      lifestyle: `Turmush tarzi sahnasi. Zamonaviy interer — marmar stol, yog'och sirt yoki zig'ir matoli fon. Tabiiy deraza yoritishi. Mahsulot kundalik hayotda ishlatilayotgandek ko'rinishi kerak. 1-2 ta mos aksessuar.`,
-      studio: `Professional studiya. Silliq gradient fon. 3 nuqtali yoritish: 45° asosiy, yumshoq to'ldiruvchi, orqa kontur. Pastda aks ettiruvchi sirt.`,
-      minimalist: `Minimalist sahna. Toza bir xil rangli fon. Mahsulot markazda, keng bo'sh joy. Yumshoq diffuz yorug'lik.`,
-      infographic: `Marketplace infografika kartasi. FAQAT oq fon. Mahsulot markazda. 3-4 ta xususiyat belgilari ikonka + qisqa matn (faqat ${langLabel}). O'lcham ko'rsatkichlari. Barcha yozuvlar FAQAT ${langLabel}, HECH QANDAY inglizcha so'z bo'lmasin.`,
+      nature: `Tashqi tabiat sahnasi. Golden hour tabiiy yoritishi. Mahsulot yashil o'simliklar, gullar yoki tabiiy toshlar orasida. Orqa fon yumshoq bokeh. Issiq ranglar.`,
+      lifestyle: `Zamonaviy interer sahnasi. Marmar yoki yog'och sirt. Tabiiy deraza yoritishi. Mahsulot kundalik hayotda ishlatilayotgandek. 1-2 ta kontekstual aksessuar.`,
+      studio: `Professional studiya. Silliq gradient fon (oqdan kulrangga). 3 nuqtali yoritish: 45° asosiy, yumshoq to'ldiruvchi, orqa kontur. Pastda aks ettiruvchi sirt.`,
+      minimalist: `Minimalist sahna. Bir xil rangli toza fon. Mahsulot markazda, keng bo'sh joy. Yumshoq diffuz yorug'lik.`,
+      infographic: `E-commerce infografika kartasi. FAQAT toza oq (#FFFFFF) fon. Mahsulot markazda. 3-4 ta xususiyat — har biri oddiy ikonka + 2-3 so'zli izoh. O'lcham chiziqlari. Barcha matnlar FAQAT ${langFull} tilida.`,
     };
 
-    const modelInstruction = modelType === "with-model"
-      ? `Fotorealistik inson modelini qo'shing. Model mahsulotni tabiiy ishlatayotgan holatda. Anatomik proporsiyalar to'g'ri. Mahsulot asosiy fokusda qoladi.`
-      : `Faqat mahsulot, inson yo'q. Eng foydali burchakdan ko'rsating. Soyalar orqali hajm his etilsin. 1-2 kichik prop qo'shing.`;
+    let prompt: string;
 
-    const prompt = `Sen dunyodagi eng yaxshi e-commerce mahsulot fotografi. Bitta mukammal mahsulot rasmi yarat.
+    if (isFreeCreate) {
+      prompt = `Sen professional e-commerce fotograf va dizaynersan. Yuklangan mahsulot rasmini tahlil qilib, shu mahsulot KATEGORIYASIGA eng mos keladigan professional marketplace rasmini yarat.
 
-RASM O'LCHAMI (MAJBURIY): ANIQ 1080x1440 piksel (3:4 vertikal nisbat). Boshqa o'lcham qabul qilinmaydi.
+VAZIFA: Mahsulotni sinchiklab o'rgan — turi, kategoriyasi, materiali, rangi, shakli, o'lchami. Keyin SHU KATEGORIYA uchun eng yaxshi sotilish natijasi beradigan sahna va kompozitsiyani O'ZING tanla.
 
-MAHSULOT TAHLILI (MUHIM):
-- Yuklangan rasmni SINCHIKLAB o'rgana: turi, kategoriyasi, materiali, rangi, teksturasi, shakli, brend logosi
-- HAQIQIY FIZIK O'LCHAMI ni aniqla: telefon (~15cm), soat (~4cm), sumka (~30cm), kosmetika va h.k.
-- REAL proporsiyada tasvirla — kichik buyumni katta qilma, kattasini kichiklashtirma
-- Barcha detallarini (tugma, chok, logo, yozuv) ANIQ va O'QILISHI MUMKIN ko'rsat
+RASM O'LCHAMI: ANIQ 1080x1440 piksel (3:4 vertikal).
+
+MAHSULOT O'LCHAMI QOIDALARI (JUDA MUHIM — BUZMA):
+- Mahsulotning HAQIQIY fizik o'lchamini aniqlash: telefon ~15cm, soat ~4cm, uzuk ~2cm, sumka ~30cm, krossovka ~30cm, krem ~10cm
+- Kichik buyum (uzuk, labga bo'yoq, quloq halqa): YAQIN makro kadr, kadrning 50-70%
+- O'rta buyum (telefon, soat, parfyum, hamyon): kadrning 35-50%
+- Katta buyum (sumka, kiyim, oyoq kiyim): kadrning 40-60%
+- Juda katta (mebel, jihoz): kadrning 60-80%
+- HECH QACHON kichik buyumni sun'iy ravishda kattalab ko'rsatma
+- HECH QACHON katta buyumni kichiklab ko'rsatma
+
+KATEGORIYA ASOSIDA SAHNA TANLASH:
+- Kiyim/poyafzal → lifestyle yoki studiya, model bilan yoki emoqda
+- Elektronika → minimalist gradient fon, texnologik his
+- Kosmetika/parfyum → elegant studiya, marmar yoki gul dekor
+- Oziq-ovqat → tabiiy yoritish, yog'och sirt
+- Aksessuar (soat, uzuk) → makro, yuqori detallangan studiya
+- Uy-ro'zg'or → interer kontekstida
+
+SIFAT TALABLARI:
+- Fotorealistik — haqiqiy kamera bilan olingan professional fotosuratdek
+- BARCHA detallar (logo, yozuv, textura, tikuv, tugma) aniq va o'qilishi mumkin
+- Professional 3 nuqtali yoritish
+- Asliy ranglar 100% saqlansin
+- Sun'iy, plastik yoki 3D renderga o'xshamasin
+
+${langCode !== "en" ? `MATN: Agar infografika elementlari qo'shsang, FAQAT ${langFull} tilida yoz. Inglizcha MUTLAQO ishlatma. Imloviy xato yo'q.` : ""}${shouldApplyWatermark ? `
+
+WATERMARK: Rasmning markaziga yarim shaffof (40% opacity) "INFOGRAFIX AI" diagonal matn qo'y.` : ""}`;
+    } else {
+      const modelInstruction = modelType === "with-model"
+        ? `Fotorealistik inson modelini qo'sh. Model mahsulotni tabiiy ishlatayotgan holatda. Anatomik proporsiyalar to'g'ri. Mahsulot fokusda qoladi.`
+        : `Faqat mahsulot, inson yo'q. Eng yaxshi burchakdan ko'rsat. Soyalar orqali hajm. 1-2 kichik prop.`;
+
+      prompt = `Sen professional e-commerce mahsulot fotografi. Bitta mukammal marketplace rasmi yarat.
+
+RASM O'LCHAMI: ANIQ 1080x1440 piksel (3:4 vertikal).
+
+MAHSULOT TAHLILI:
+- Rasmni sinchiklab o'rgan: turi, kategoriyasi, materiali, rangi, teksturasi, shakli, brend logosi
+- HAQIQIY FIZIK O'LCHAMINI aniqlash: telefon ~15cm, soat ~4cm, sumka ~30cm, uzuk ~2cm
+- BARCHA detallar (tugma, chok, logo, yozuv, textura) ANIQ va O'QILISHI MUMKIN ko'rinsin
+
+MAHSULOT O'LCHAMI QOIDALARI (JUDA MUHIM — BUZMA):
+- Kichik buyum (uzuk, labga bo'yoq, quloq halqa): YAQIN makro kadr, kadrning 50-70%
+- O'rta buyum (telefon, soat, parfyum, hamyon): kadrning 35-50%
+- Katta buyum (sumka, kiyim, oyoq kiyim): kadrning 40-60%
+- Juda katta (mebel, jihoz): kadrning 60-80%
+- Mahsulotni REAL proporsiyada ko'rsat
 
 SAHNA: ${sceneMap[sceneType] || sceneMap.studio}
 MODEL: ${modelInstruction}
 
-MASSHTAB QOIDALARI (JUDA MUHIM):
-- Kichik buyumlar (uzuk, labga bo'yoq): YAQIN KADR, kadrning 50-70%
-- O'rta buyumlar (telefon, soat, parfyum): kadrning 35-50%
-- Katta buyumlar (sumka, kiyim): kadrning 40-60%
-- Juda katta buyumlar (mebel): kadrning 60-80%
+YORITISH: 3 nuqtali professional yoritish. ASLIY ranglar 100% saqlansin. Yumshoq soyalar.
 
-YORITISH: 3 nuqtali professional yoritish. ASLIY ranglar 100% saqlansin. Kinematografik rang sozlash. Yumshoq soyalar, engil vinyet.
+MATN (FAQAT INFOGRAFIKA UCHUN): FAQAT ${langFull} tilida. Inglizcha MUTLAQO yo'q. Imloviy xato yo'q. Zamonaviy shrift.
 
-MATN (FAQAT INFOGRAFIKA UCHUN): FAQAT ${langLabel}, inglizcha so'z YO'Q. Imloviy 100% to'g'ri. Zamonaviy shrift.
+SIFAT: Fotorealistik, professional studiya darajasi. Sun'iy ko'rinmasin. Detalar o'tkir.${shouldApplyWatermark ? `
 
-SIFAT: Fotorealistik, professional studiya darajasi. Sun'iy ko'rinmasin. Piksellar aniq, detalar o'tkir.${shouldApplyWatermark ? `
-
-WATERMARK (MAJBURIY): Rasmning MARKAZIGA katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Oq rangda, katta shriftda.` : ""}`;
+WATERMARK: Rasmning markaziga yarim shaffof (40% opacity) "INFOGRAFIX AI" diagonal matn qo'y.` : ""}`;
+    }
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
