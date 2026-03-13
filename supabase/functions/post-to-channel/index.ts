@@ -10,6 +10,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function downloadAsBlob(url: string): Promise<Blob> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  const arrayBuffer = await res.arrayBuffer();
+  return new Blob([arrayBuffer], { type: "image/png" });
+}
+
+async function sendPhotoAsUpload(
+  botToken: string,
+  chatId: string,
+  photoBlob: Blob,
+  caption: string,
+  filename: string
+): Promise<any> {
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  form.append("photo", photoBlob, filename);
+  form.append("caption", caption);
+  form.append("parse_mode", "HTML");
+
+  const res = await fetch(`${TELEGRAM_API}${botToken}/sendPhoto`, {
+    method: "POST",
+    body: form,
+  });
+  return res.json();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -25,17 +52,34 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing URLs" }), { status: 400 });
     }
 
-    // Step 1: Send before/after as media group (2 photos)
-    const mediaGroup = [
+    // Download both images as binary blobs
+    let originalBlob: Blob;
+    let resultBlob: Blob;
+    try {
+      [originalBlob, resultBlob] = await Promise.all([
+        downloadAsBlob(originalUrl),
+        downloadAsBlob(resultUrl),
+      ]);
+    } catch (e) {
+      console.error("Image download error:", e);
+      return new Response(JSON.stringify({ error: "Failed to download images" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Upload as media group using multipart form data
+    const form = new FormData();
+    form.append("chat_id", CHANNEL_ID);
+    form.append("media", JSON.stringify([
       {
         type: "photo",
-        media: originalUrl,
+        media: "attach://original",
         caption: `❌ <b>OLDIN</b> — oddiy telefon surati`,
         parse_mode: "HTML",
       },
       {
         type: "photo",
-        media: resultUrl,
+        media: "attach://result",
         caption: `✅ <b>KEYIN</b> — INFOGRAFIX AI natijasi\n\n` +
           `📸 Oddiy rasmni professional e-commerce fotoga aylantirdik!\n\n` +
           `✨ <b>Imkoniyatlar:</b>\n` +
@@ -47,15 +91,13 @@ serve(async (req) => {
           `💡 <i>1 ta bepul rasm — hoziroq sinab ko'ring!</i>`,
         parse_mode: "HTML",
       },
-    ];
+    ]));
+    form.append("original", originalBlob, "original.png");
+    form.append("result", resultBlob, "result.png");
 
     const mediaRes = await fetch(`${TELEGRAM_API}${botToken}/sendMediaGroup`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHANNEL_ID,
-        media: mediaGroup,
-      }),
+      body: form,
     });
 
     const mediaResult = await mediaRes.json();
@@ -67,7 +109,7 @@ serve(async (req) => {
       });
     }
 
-    // Step 2: Send inline buttons as a separate message (reply to the media group)
+    // Send inline buttons as reply
     const lastMessageId = mediaResult.result?.[mediaResult.result.length - 1]?.message_id;
 
     const buttonText =
