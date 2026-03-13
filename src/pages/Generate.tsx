@@ -132,8 +132,8 @@ const Generate = () => {
       const { data: fnData, error: fnError } = await supabase.functions.invoke("process-image", {
         body: {
           imageUrl: signedData.signedUrl,
-          modelType: selectedModel,
-          sceneType: selectedScene,
+          modelType: selectedModel === "free-create" ? "free-create" : selectedModel,
+          sceneType: selectedModel === "free-create" ? "free-create" : selectedScene,
           generationId: genData.id,
           language: lang,
         },

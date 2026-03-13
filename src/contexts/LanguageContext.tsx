@@ -358,6 +358,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "gen.settingsTitle": "Выберите настройки",
     "gen.settingsDesc": "AI создаст изображение на основе выбранных настроек",
     "gen.modelType": "👤 Тип модели",
+    "gen.freeCreate": "✨ Свободное создание",
+    "gen.freeCreateDesc": "AI автоматически создаст по категории товара",
     "gen.withModel": "С моделью",
     "gen.withModelDesc": "С человеком-моделью",
     "gen.withoutModel": "Без модели",
