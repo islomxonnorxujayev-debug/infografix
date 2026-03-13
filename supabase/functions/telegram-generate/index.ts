@@ -217,7 +217,7 @@ WATERMARK (MAJBURIY): Rasmning MARKAZIGA katta yarim shaffof (40% opacity) "INFO
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-3.1-flash-image-preview",
         messages: [{
           role: "user",
           content: [
