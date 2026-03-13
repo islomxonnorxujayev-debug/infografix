@@ -172,30 +172,43 @@ serve(async (req) => {
     const langLabel = langCode === "ru" ? "rus tilida" : "o'zbek tilida";
 
     const sceneMap: Record<string, string> = {
-      nature: `Tashqi tabiat: oltin soat yoritishi, bog'/o'rmon. Issiq ranglar, bokeh orqa fon.`,
-      lifestyle: `Turmush tarzi: zamonaviy kvartira/kafe. Issiq yoritish, boy teksturalar.`,
-      studio: `Studiya: tekis gradient fon, 3 nuqtali yoritish, aks ettiruvchi sirt.`,
-      minimalist: `Minimalist: bir rangli fon, keng bo'sh joy, yumshoq yorug'lik.`,
-      infographic: `Marketplace infografika kartasi. Oq fon. Mahsulot markazda. Xususiyat belgilari ikonkalar bilan. Barcha yozuvlar faqat ${langLabel}.`,
+      nature: `Tashqi tabiat sahnasi. Oltin soat (golden hour) tabiiy yoritishi. Mahsulot yashil o'simliklar, gullar yoki tabiiy toshlar orasida joylashgan. Orqa fon yumshoq bokeh effektida. Issiq ranglar palitrasi.`,
+      lifestyle: `Turmush tarzi sahnasi. Zamonaviy interer — marmar stol, yog'och sirt yoki zig'ir matoli fon. Tabiiy deraza yoritishi. Mahsulot kundalik hayotda ishlatilayotgandek ko'rinishi kerak. 1-2 ta mos aksessuar.`,
+      studio: `Professional studiya. Silliq gradient fon. 3 nuqtali yoritish: 45° asosiy, yumshoq to'ldiruvchi, orqa kontur. Pastda aks ettiruvchi sirt.`,
+      minimalist: `Minimalist sahna. Toza bir xil rangli fon. Mahsulot markazda, keng bo'sh joy. Yumshoq diffuz yorug'lik.`,
+      infographic: `Marketplace infografika kartasi. FAQAT oq fon. Mahsulot markazda. 3-4 ta xususiyat belgilari ikonka + qisqa matn (faqat ${langLabel}). O'lcham ko'rsatkichlari. Barcha yozuvlar FAQAT ${langLabel}, HECH QANDAY inglizcha so'z bo'lmasin.`,
     };
 
     const modelInstruction = modelType === "with-model"
-      ? "Fotorealistik modelni mahsulotdan foydalanayotgan holda tabiiy qo'shing."
-      : "Faqat mahsulot. Dinamik burchaklar, badiiy soyalar, mos proplar.";
+      ? `Fotorealistik inson modelini qo'shing. Model mahsulotni tabiiy ishlatayotgan holatda. Anatomik proporsiyalar to'g'ri. Mahsulot asosiy fokusda qoladi.`
+      : `Faqat mahsulot, inson yo'q. Eng foydali burchakdan ko'rsating. Soyalar orqali hajm his etilsin. 1-2 kichik prop qo'shing.`;
 
-    const prompt = `Sen professional e-commerce mahsulot fotografi. Bitta ajoyib mahsulot rasmi yarat.
-MUHIM O'LCHAM: Rasm aniq 1080x1440 piksel (3:4 nisbat) bo'lishi SHART.
-MAHSULOT TAHLILI: Yuklangan rasmni chuqur o'rganing — kategoriyasi, haqiqiy o'lchamlari, xususiyatlari, ranglari, materiali, teksturasi. Har bir detalga e'tibor ber.
+    const prompt = `Sen dunyodagi eng yaxshi e-commerce mahsulot fotografi. Bitta mukammal mahsulot rasmi yarat.
+
+RASM O'LCHAMI (MAJBURIY): ANIQ 1080x1440 piksel (3:4 vertikal nisbat). Boshqa o'lcham qabul qilinmaydi.
+
+MAHSULOT TAHLILI (MUHIM):
+- Yuklangan rasmni SINCHIKLAB o'rgana: turi, kategoriyasi, materiali, rangi, teksturasi, shakli, brend logosi
+- HAQIQIY FIZIK O'LCHAMI ni aniqla: telefon (~15cm), soat (~4cm), sumka (~30cm), kosmetika va h.k.
+- REAL proporsiyada tasvirla — kichik buyumni katta qilma, kattasini kichiklashtirma
+- Barcha detallarini (tugma, chok, logo, yozuv) ANIQ va O'QILISHI MUMKIN ko'rsat
+
 SAHNA: ${sceneMap[sceneType] || sceneMap.studio}
 MODEL: ${modelInstruction}
-MASSHTAB: Mahsulot HAQIQIY o'lchamda. Kadrning 25-40% ini egallaydi.
-YORITISH: 3 nuqtali professional. Kinematografik rang sozlash. Asl ranglar saqlanadi.
-DIZAYN: 1-2 nafis matn faqat ${langLabel}. HECH QANDAY inglizcha so'z ishlatma.
-IMLO: Infografikadagi barcha matnlar imlo va grammatika jihatdan 100% to'g'ri bo'lsin. Xato harf bo'lmasin.
-FORMAT (QAT'IY): Yakuniy rasm faqat 1080x1440 piksel bo'lsin. Boshqa o'lcham yaratma.
-SIFAT: $5000 lik professional fotosessiya darajasi. Sun'iy ko'rinmasin. Noyob kompozitsiya.${shouldApplyWatermark ? `
 
-WATERMARK (MUHIM): Rasmning markaziga katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Matn oq rangda, katta shriftda, butun rasm bo'ylab ko'rinsin. Bu MAJBURIY.` : ""}`;
+MASSHTAB QOIDALARI (JUDA MUHIM):
+- Kichik buyumlar (uzuk, labga bo'yoq): YAQIN KADR, kadrning 50-70%
+- O'rta buyumlar (telefon, soat, parfyum): kadrning 35-50%
+- Katta buyumlar (sumka, kiyim): kadrning 40-60%
+- Juda katta buyumlar (mebel): kadrning 60-80%
+
+YORITISH: 3 nuqtali professional yoritish. ASLIY ranglar 100% saqlansin. Kinematografik rang sozlash. Yumshoq soyalar, engil vinyet.
+
+MATN (FAQAT INFOGRAFIKA UCHUN): FAQAT ${langLabel}, inglizcha so'z YO'Q. Imloviy 100% to'g'ri. Zamonaviy shrift.
+
+SIFAT: Fotorealistik, professional studiya darajasi. Sun'iy ko'rinmasin. Piksellar aniq, detalar o'tkir.${shouldApplyWatermark ? `
+
+WATERMARK (MAJBURIY): Rasmning MARKAZIGA katta yarim shaffof (40% opacity) "INFOGRAFIX AI" matnini diagonal (45°) qilib yozib qo'y. Oq rangda, katta shriftda.` : ""}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
