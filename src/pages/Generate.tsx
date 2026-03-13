@@ -91,7 +91,7 @@ const Generate = () => {
   };
 
   const handleProcess = async () => {
-    if (!uploadedFile || !user || !selectedModel || !selectedScene) return;
+    if (!uploadedFile || !user || !selectedModel || (!isFreeCreate && !selectedScene)) return;
     setProcessing(true);
     setCurrentStep(2);
     setShowComplete(false);
