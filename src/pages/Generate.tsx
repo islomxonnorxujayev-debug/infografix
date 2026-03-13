@@ -307,11 +307,27 @@ const Generate = () => {
                 <h2 className="font-display text-xl sm:text-3xl font-bold text-foreground mb-1 text-center">{t("gen.settingsTitle")}</h2>
                 <p className="text-sm text-muted-foreground mb-6 sm:mb-8 text-center">{t("gen.settingsDesc")}</p>
 
+                {/* Free create button */}
+                <div className="mb-4 sm:mb-6">
+                  <button
+                    onClick={() => { setSelectedModel("free-create"); setSelectedScene(null); }}
+                    className={`w-full max-w-md mx-auto block p-4 sm:p-5 rounded-2xl border text-center transition-all ${
+                      selectedModel === "free-create"
+                        ? "border-primary bg-primary/5 shadow-glow"
+                        : "border-border bg-card hover:border-primary/20"
+                    }`}
+                  >
+                    <Sparkles className={`h-6 w-6 mx-auto mb-2 ${selectedModel === "free-create" ? "text-primary" : "text-muted-foreground"}`} />
+                    <div className="font-display font-bold text-foreground text-sm">{t("gen.freeCreate")}</div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{t("gen.freeCreateDesc")}</div>
+                  </button>
+                </div>
+
                 {/* Model selection */}
                 <div className="mb-6 sm:mb-8">
                   <h3 className="text-sm font-semibold text-foreground mb-3 text-center">{t("gen.modelType")}</h3>
                   <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
-                    {modelOptions.map((opt) => (
+                    {modelOptions.filter(o => o.id !== "free-create").map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => setSelectedModel(opt.id)}
@@ -329,8 +345,8 @@ const Generate = () => {
                   </div>
                 </div>
 
-                {/* Scene selection */}
-                <div className="mb-6 sm:mb-8">
+                {/* Scene selection - hidden for free-create */}
+                {!isFreeCreate && <div className="mb-6 sm:mb-8">
                   <h3 className="text-sm font-semibold text-foreground mb-3 text-center">{t("gen.scene")}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto">
                     {sceneOptions.map((opt) => (
