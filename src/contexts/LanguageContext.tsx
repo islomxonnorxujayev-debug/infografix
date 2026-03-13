@@ -100,6 +100,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "gen.settingsTitle": "Sozlamalarni tanlang",
     "gen.settingsDesc": "AI tanlangan sozlamalarga qarab rasm yaratadi",
     "gen.modelType": "👤 Model turi",
+    "gen.freeCreate": "✨ Erkin yaratish",
+    "gen.freeCreateDesc": "AI mahsulot kategoriyasiga qarab avtomatik yaratadi",
     "gen.withModel": "Modelli",
     "gen.withModelDesc": "Inson model bilan",
     "gen.withoutModel": "Modelsiz",
