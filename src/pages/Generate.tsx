@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
 const modelOptions = [
+  { id: "free-create", labelKey: "gen.freeCreate", descKey: "gen.freeCreateDesc", icon: Sparkles },
   { id: "with-model", labelKey: "gen.withModel", descKey: "gen.withModelDesc", icon: User },
   { id: "without-model", labelKey: "gen.withoutModel", descKey: "gen.withoutModelDesc", icon: Package },
 ];
