@@ -365,7 +365,7 @@ const Generate = () => {
                       </button>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 {/* Preview */}
                 {previewUrl && (
